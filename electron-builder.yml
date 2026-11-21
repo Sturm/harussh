@@ -1,0 +1,31 @@
+appId: io.ndna.harussh
+productName: harussh
+directories:
+  output: release
+  buildResources: build
+# electron-vite bundles everything except `dependencies` into out/. So:
+# - libraries used only by the bundled code (vue, @xterm/*) belong in
+#   devDependencies and are not shipped in node_modules;
+# - `dependencies` (ssh2, zod) are external to the bundle and electron-builder
+#   copies them into the app — keep this list minimal.
+files:
+  - out/**/*
+  - package.json
+# ssh2 works without its optional native addons (cpu-features / sshcrypto),
+# so nothing is rebuilt for Electron and no compiler toolchain is needed.
+npmRebuild: false
+mac:
+  icon: build/icon-mac.png
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+    - portable
+linux:
+  category: Development
+  target:
+    - AppImage
+    - deb
