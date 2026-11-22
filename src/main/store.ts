@@ -379,6 +379,11 @@ export class Store {
     }
   }
 
+  deleteHistory(id: string): void {
+    this.data.history = this.data.history.filter((e) => e.id !== id)
+    this.save()
+  }
+
   clearHistory(): void {
     this.data.history = []
     this.save()

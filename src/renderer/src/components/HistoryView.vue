@@ -18,6 +18,11 @@ function reconnect(e: HistoryEntry): void {
   if (host) openHost(host)
 }
 
+async function remove(e: HistoryEntry): Promise<void> {
+  await api.deleteHistory(e.id)
+  state.history = state.history.filter((x) => x.id !== e.id)
+}
+
 async function clear(): Promise<void> {
   if (!confirm('Clear the entire connection history?')) return
   await api.clearHistory()
@@ -55,6 +60,9 @@ async function clear(): Promise<void> {
         </div>
         <button class="btn small" :disabled="!state.hosts.some((h) => h.id === e.hostId)" @click="reconnect(e)">
           <Icon name="play" :size="13" /> Connect
+        </button>
+        <button class="icon-btn danger" title="Remove from history" @click="remove(e)">
+          <Icon name="trash" :size="15" />
         </button>
       </div>
     </div>

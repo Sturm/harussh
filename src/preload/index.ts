@@ -29,6 +29,7 @@ const api: HarusshApi = {
   clearCommands: (hostId) => ipcRenderer.send('commands:clear', hostId),
 
   getHistory: () => ipcRenderer.invoke('history:get'),
+  deleteHistory: (id) => ipcRenderer.invoke('history:delete', id),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
 
   saveSettings: (patch) => ipcRenderer.invoke('settings:save', patch),

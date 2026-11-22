@@ -193,6 +193,7 @@ function registerIpc(): void {
   on('commands:clear', z.tuple([schema.id]), (hostId) => store.clearCommands(hostId))
 
   handle('history:get', noArgs, () => store.getHistory())
+  handle('history:delete', z.tuple([schema.id]), (id) => store.deleteHistory(id))
   handle('history:clear', noArgs, () => store.clearHistory())
 
   handle('settings:save', z.tuple([schema.settingsPatch]), (patch) => store.saveSettings(patch))

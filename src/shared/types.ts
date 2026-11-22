@@ -256,6 +256,7 @@ export interface HarusshApi {
   clearCommands(hostId: string): void
 
   getHistory(): Promise<HistoryEntry[]>
+  deleteHistory(id: string): Promise<void>
   clearHistory(): Promise<void>
 
   saveSettings(patch: Partial<Settings>): Promise<Settings>
