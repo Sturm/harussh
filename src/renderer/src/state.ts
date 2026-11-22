@@ -1,5 +1,6 @@
 import { computed, reactive } from 'vue'
 import type {
+  CommandEntry,
   HistoryEntry,
   Host,
   HostInput,
@@ -34,6 +35,9 @@ export type SnippetDraft = Omit<Snippet, 'id'> & { id?: string }
 export const hostColors = ['#3d8bfd', '#3fcf8e', '#f5b84a', '#f05d6c', '#a78bfa', '#2dd4bf', '#ff8a4c', '#8b93a7']
 
 const initialView = 'hosts' as View
+const initialPanelTab = 'snippets' as 'snippets' | 'history'
+// Commands typed in terminal sessions, per host id, newest first.
+const commands: Record<string, CommandEntry[]> = {}
 
 export const state = reactive({
   ready: false,
@@ -53,7 +57,12 @@ export const state = reactive({
   view: initialView,
   editingHost: null as HostDraft | null,
   editingSnippet: null as SnippetDraft | null,
-  snippetPanel: false,
+  commands,
+  // Side panel in terminal tabs: open by default, Snippets first.
+  sidePanel: true,
+  sidePanelTab: initialPanelTab,
+  // Bumped to put keyboard focus back into the active terminal.
+  termFocus: 0,
   quickFocus: 0
 })
 
@@ -69,6 +78,7 @@ export async function loadData(): Promise<void> {
   state.history = data.history
   state.settings = data.settings
   state.customThemes = data.themes
+  state.commands = data.commands
   state.secretsEncrypted = data.secretsEncrypted
   state.ready = true
 }
@@ -252,6 +262,33 @@ export function runSnippet(snippet: Snippet, tabId = state.lastSessionTab): void
   const command = snippet.command.replace(/\r?\n/g, '\r')
   api.sshWrite(tabId, command + (snippet.autoRun ? '\r' : ''))
   activate(tabId)
+  state.termFocus++
+}
+
+// --- command history ---
+
+export function recordCommand(hostId: string, command: string): void {
+  const rest = (state.commands[hostId] ?? []).filter((c) => c.command !== command)
+  state.commands[hostId] = [{ command, at: Date.now() }, ...rest].slice(0, 500)
+  api.addCommand(hostId, command)
+}
+
+/** Pastes a command from history into the terminal; with run = true also presses Enter. */
+export function useCommand(tabId: string, hostId: string, command: string, run: boolean): void {
+  api.sshWrite(tabId, command + (run ? '\r' : ''))
+  if (run) recordCommand(hostId, command)
+  state.termFocus++
+}
+
+export function deleteCommand(hostId: string, command: string): void {
+  state.commands[hostId] = (state.commands[hostId] ?? []).filter((c) => c.command !== command)
+  api.deleteCommand(hostId, command)
+}
+
+export function clearCommands(hostId: string): void {
+  if (!confirm('Clear the command history for this host?')) return
+  delete state.commands[hostId]
+  api.clearCommands(hostId)
 }
 
 // --- settings ---

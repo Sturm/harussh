@@ -18,6 +18,10 @@ const api: HarusshApi = {
   saveSnippet: (snippet) => ipcRenderer.invoke('snippets:save', snippet),
   deleteSnippet: (id) => ipcRenderer.invoke('snippets:delete', id),
 
+  addCommand: (hostId, command) => ipcRenderer.send('commands:add', hostId, command),
+  deleteCommand: (hostId, command) => ipcRenderer.send('commands:delete', hostId, command),
+  clearCommands: (hostId) => ipcRenderer.send('commands:clear', hostId),
+
   getHistory: () => ipcRenderer.invoke('history:get'),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
 

@@ -157,6 +157,7 @@ function registerIpc(): void {
     history: store.getHistory(),
     settings: store.getSettings(),
     themes: themes.list(),
+    commands: store.getCommands(),
     secretsEncrypted: store.secretsEncrypted
   }))
 
@@ -176,6 +177,11 @@ function registerIpc(): void {
 
   handle('snippets:save', z.tuple([schema.snippetInput]), (s) => store.saveSnippet(s))
   handle('snippets:delete', z.tuple([schema.id]), (id) => store.deleteSnippet(id))
+
+  const command = z.string().min(1).max(8192)
+  on('commands:add', z.tuple([schema.id, command]), (hostId, cmd) => store.addCommand(hostId, cmd))
+  on('commands:delete', z.tuple([schema.id, command]), (hostId, cmd) => store.deleteCommand(hostId, cmd))
+  on('commands:clear', z.tuple([schema.id]), (hostId) => store.clearCommands(hostId))
 
   handle('history:get', noArgs, () => store.getHistory())
   handle('history:clear', noArgs, () => store.clearHistory())

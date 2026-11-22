@@ -55,6 +55,12 @@ export interface HistoryEntry {
   error?: string
 }
 
+export interface CommandEntry {
+  command: string
+  // When it was last run (ms since epoch)
+  at: number
+}
+
 export type CursorStyle = 'block' | 'bar' | 'underline'
 
 export interface Settings {
@@ -183,6 +189,8 @@ export interface AppData {
   history: HistoryEntry[]
   settings: Settings
   themes: ThemeDef[]
+  // Commands typed in terminal sessions, per host id, newest first.
+  commands: Record<string, CommandEntry[]>
   // false = no OS secret store; passwords/keys are kept only until the app quits
   secretsEncrypted: boolean
 }
@@ -197,6 +205,10 @@ export interface HarusshApi {
 
   saveSnippet(snippet: Omit<Snippet, 'id'> & { id?: string }): Promise<Snippet>
   deleteSnippet(id: string): Promise<void>
+
+  addCommand(hostId: string, command: string): void
+  deleteCommand(hostId: string, command: string): void
+  clearCommands(hostId: string): void
 
   getHistory(): Promise<HistoryEntry[]>
   clearHistory(): Promise<void>

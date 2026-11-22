@@ -61,9 +61,9 @@ const activeHost = computed(() => state.hosts.find((h) => h.id === activeTab.val
       <button
         v-if="activeTab.kind === 'ssh'"
         class="icon-btn"
-        :class="{ on: state.snippetPanel }"
-        :title="`Snippets (${modLabel}S)`"
-        @click="state.snippetPanel = !state.snippetPanel"
+        :class="{ on: state.sidePanel }"
+        :title="`Snippets & history (${modLabel}S)`"
+        @click="state.sidePanel = !state.sidePanel"
       >
         <Icon name="code" :size="16" />
       </button>

@@ -36,7 +36,7 @@ function onKey(e: KeyboardEvent): void {
   else if (shortcut === 'prev') cycleTab(-1)
   else if (shortcut === 'snippets') {
     if (state.active === 'home') state.view = 'snippets'
-    else if (state.tabs.find((t) => t.id === state.active)?.kind === 'ssh') state.snippetPanel = !state.snippetPanel
+    else if (state.tabs.find((t) => t.id === state.active)?.kind === 'ssh') state.sidePanel = !state.sidePanel
   } else {
     const tab = state.tabs[Number(shortcut.slice(4)) - 1]
     if (tab) activate(tab.id)

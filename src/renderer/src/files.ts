@@ -32,6 +32,20 @@ export function formatDate(ms: number): string {
   return ms ? dateFormat.format(ms) : ''
 }
 
+const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' })
+const dayFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' })
+const yearFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
+
+/** Compact date for lists: "14:32" today, "21 Nov 14:32" this year, "3 Mar 2025" before. */
+export function formatWhen(ms: number): string {
+  if (!ms) return ''
+  const d = new Date(ms)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString()) return timeFormat.format(d)
+  if (d.getFullYear() === now.getFullYear()) return `${dayFormat.format(d)} ${timeFormat.format(d)}`
+  return yearFormat.format(d)
+}
+
 /** Strips Electron's "Error invoking remote method 'x': Error: " prefix. */
 export function errorMessage(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err)

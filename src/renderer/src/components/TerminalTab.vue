@@ -5,9 +5,10 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { api, isMac, matchShortcut, onTabData } from '../api'
-import { closeTab, currentTheme, editHost, state, type Tab } from '../state'
+import { closeTab, currentTheme, editHost, recordCommand, state, type Tab } from '../state'
 import Icon from './Icon.vue'
-import SnippetPanel from './SnippetPanel.vue'
+import SidePanel from './SidePanel.vue'
+import { CommandCapture } from '../commandCapture'
 
 const props = defineProps<{ tab: Tab; active: boolean }>()
 
@@ -79,7 +80,13 @@ onMounted(() => {
     return true
   })
 
-  term.onData((data) => api.sshWrite(props.tab.id, data))
+  const capture = new CommandCapture(term)
+  term.onData((data) => {
+    // Read the command line before sending Enter, while it's still on screen.
+    const command = capture.input(data)
+    api.sshWrite(props.tab.id, data)
+    if (command) recordCommand(props.tab.hostId, command)
+  })
   term.onResize(({ cols, rows }) => api.sshResize(props.tab.id, cols, rows))
   term.onSelectionChange(() => {
     if (state.settings.copyOnSelect) copySelection()
@@ -107,6 +114,13 @@ watch(
     await nextTick()
     safeFit()
     term.focus()
+  }
+)
+
+watch(
+  () => state.termFocus,
+  () => {
+    if (props.active) term.focus()
   }
 )
 
@@ -166,6 +180,6 @@ function editThisHost(): void {
         </div>
       </Transition>
     </div>
-    <SnippetPanel v-if="state.snippetPanel" :tab-id="tab.id" />
+    <SidePanel v-if="state.sidePanel" :tab-id="tab.id" :host-id="tab.hostId" />
   </div>
 </template>

@@ -1680,6 +1680,66 @@ kbd {
   font-size: 12px;
 }
 
+/* ---------- side panel: tabs + command history ---------- */
+
+.snippet-panel .panel-tabs {
+  flex: 1;
+  margin-right: 4px;
+  padding: 2px;
+}
+
+.snippet-panel .panel-tabs button {
+  height: 24px;
+  font-size: 12.5px;
+}
+
+.history-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.history-item:hover {
+  border-color: var(--accent);
+}
+
+.history-item code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-time {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.history-item-actions {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+  border-radius: 6px;
+  background: var(--surface2);
+  opacity: 0;
+}
+
+.history-item:hover .history-item-actions {
+  opacity: 1;
+}
+
+.history-item-actions .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+
 /* ---------- scrollbars ---------- */
 
 ::-webkit-scrollbar {

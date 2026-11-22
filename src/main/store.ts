@@ -2,7 +2,7 @@ import { safeStorage, type Rectangle } from 'electron'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import type { HistoryEntry, Host, HostInput, Settings, Snippet } from '../shared/types'
+import type { CommandEntry, HistoryEntry, Host, HostInput, Settings, Snippet } from '../shared/types'
 
 type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase'>
 type SecretField = 'password' | 'privateKey' | 'passphrase'
@@ -17,10 +17,13 @@ interface DataFile {
   history: HistoryEntry[]
   settings: Settings
   knownHosts: Record<string, string>
+  // Commands typed in terminal sessions, per host id, newest first.
+  commands: Record<string, CommandEntry[]>
   window?: { bounds: Rectangle; maximized: boolean }
 }
 
 const MAX_HISTORY = 200
+const MAX_COMMANDS = 500
 
 const defaultFont =
   process.platform === 'darwin'
@@ -54,6 +57,19 @@ function decrypt(value: string): string | undefined {
     // e.g. data copied from another machine — the OS key doesn't match
   }
   return undefined
+}
+
+// Early builds stored plain strings without a time; their time shows as unknown (0).
+function normalizeCommands(raw: unknown): Record<string, CommandEntry[]> {
+  if (!raw || typeof raw !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown[]>).map(([hostId, list]) => [
+      hostId,
+      (Array.isArray(list) ? list : []).map((c) =>
+        typeof c === 'string' ? { command: c, at: 0 } : (c as CommandEntry)
+      )
+    ])
+  )
 }
 
 export class Store {
@@ -96,12 +112,18 @@ export class Store {
       snippets: [],
       history: [],
       settings: { ...defaultSettings },
-      knownHosts: {}
+      knownHosts: {},
+      commands: {}
     }
     if (!existsSync(this.file)) return empty
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<DataFile>
-      return { ...empty, ...parsed, settings: { ...defaultSettings, ...parsed.settings } }
+      return {
+        ...empty,
+        ...parsed,
+        settings: { ...defaultSettings, ...parsed.settings },
+        commands: normalizeCommands(parsed.commands)
+      }
     } catch (err) {
       console.error('Could not read data file, starting fresh:', err)
       renameSync(this.file, this.file + '.broken-' + Date.now())
@@ -179,6 +201,7 @@ export class Store {
     this.data.hosts = this.data.hosts.filter((h) => h.id !== id)
     delete this.data.secrets[id]
     delete this.sessionSecrets[id]
+    delete this.data.commands[id]
     this.save()
   }
 
@@ -245,6 +268,32 @@ export class Store {
 
   clearHistory(): void {
     this.data.history = []
+    this.save()
+  }
+
+  // --- command history ---
+
+  getCommands(): Record<string, CommandEntry[]> {
+    return this.data.commands
+  }
+
+  /** Moves a repeated command to the top instead of storing it twice. */
+  addCommand(hostId: string, command: string): void {
+    const list = [
+      { command, at: Date.now() },
+      ...(this.data.commands[hostId] ?? []).filter((c) => c.command !== command)
+    ]
+    this.data.commands[hostId] = list.slice(0, MAX_COMMANDS)
+    this.save()
+  }
+
+  deleteCommand(hostId: string, command: string): void {
+    this.data.commands[hostId] = (this.data.commands[hostId] ?? []).filter((c) => c.command !== command)
+    this.save()
+  }
+
+  clearCommands(hostId: string): void {
+    delete this.data.commands[hostId]
     this.save()
   }
 
