@@ -270,8 +270,8 @@ h3 {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 14px 10px;
+  gap: 6px;
+  padding: 10px;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
 }
@@ -702,9 +702,10 @@ kbd {
 }
 
 .badge {
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
   border-radius: 10px;
   background: var(--surface2);
   color: var(--text-muted);
@@ -975,7 +976,6 @@ kbd {
 /* ---------- settings ---------- */
 
 .settings-section {
-  max-width: 640px;
   margin-bottom: 26px;
   padding: 18px;
   border: 1px solid var(--border);

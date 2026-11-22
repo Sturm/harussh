@@ -87,8 +87,8 @@ const ansi = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'] as const
         </div>
         <div class="theme-meta">
           <span class="theme-name">{{ t.name }}</span>
-          <span class="badge">{{ t.type === 'light' ? 'light' : 'dark' }}</span>
-          <span v-if="t.custom" class="badge accent">custom</span>
+          <span class="badge">{{ t.type === 'light' ? 'Light' : 'Dark' }}</span>
+          <span v-if="t.custom" class="badge accent">Custom</span>
           <span class="spacer" />
           <button class="icon-btn" title="Duplicate to edit (JSON)" @click.stop="duplicate(t)">
             <Icon name="copy" :size="14" />

@@ -126,11 +126,6 @@ const shortcuts = [
           @change="saveSettings({ keepAliveInterval: num($event, 5, 300) })"
         />
       </label>
-      <p class="hint">
-        A keepalive packet is sent this often so the server, NAT or firewall don't drop an idle connection. After 3
-        missed replies the connection is considered dead and — if the host has auto-reconnect on — harussh reconnects.
-        Applies to new connections.
-      </p>
     </div>
 
     <div class="settings-section">
