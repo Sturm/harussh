@@ -69,7 +69,7 @@ export const state = reactive({
   sidePanelTab: initialPanelTab,
   // Bumped to put keyboard focus back into the active terminal.
   termFocus: 0,
-  quickFocus: 0
+  searchFocus: 0
 })
 
 export const allThemes = computed(() => [...builtInThemes, ...state.customThemes])
@@ -135,11 +135,11 @@ export function activate(id: string): void {
   if (state.tabs.find((t) => t.id === id)?.kind === 'ssh') state.lastSessionTab = id
 }
 
-/** "+" / new-tab shortcut: back to the hosts list with quick connect focused. */
+/** "+" / new-tab shortcut: back to the hosts list with the search box focused. */
 export function newConnection(): void {
   activate('home')
   state.view = 'hosts'
-  state.quickFocus++
+  state.searchFocus++
 }
 
 export function openHost(host: Host, kind: TabKind = 'ssh'): void {
@@ -255,14 +255,6 @@ export async function deleteHost(host: Host): Promise<void> {
   if (!confirm(`Delete host "${host.label || host.hostname}"? Its saved password and key will be removed too.`)) return
   await api.deleteHost(host.id)
   state.hosts = state.hosts.filter((h) => h.id !== host.id)
-}
-
-/** Parses "user@host:port" from the quick-connect box. */
-export function parseQuickConnect(input: string): Partial<HostInput> | null {
-  const m = /^\s*(?:([^@\s]+)@)?([^\s:@]+|\[[^\]]+\])(?::(\d+))?\s*$/.exec(input)
-  if (!m) return null
-  const hostname = m[2]!.replace(/^\[|\]$/g, '')
-  return { username: m[1] ?? '', hostname, port: m[3] ? Number(m[3]) : 22, label: hostname }
 }
 
 // --- host groups ('' = Unassigned) ---

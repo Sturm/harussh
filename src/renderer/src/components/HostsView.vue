@@ -8,7 +8,6 @@ import {
   moveHostsToGroup,
   newHostDraft,
   openHost,
-  parseQuickConnect,
   removeGroup,
   renameGroup,
   state,
@@ -18,16 +17,14 @@ import HostIcon from './HostIcon.vue'
 import Icon from './Icon.vue'
 
 const search = ref('')
-const quick = ref('')
-const quickError = ref(false)
-const quickInput = ref<HTMLInputElement>()
+const searchInput = ref<HTMLInputElement>()
 
-function focusQuick(): void {
-  void nextTick(() => quickInput.value?.focus())
+function focusSearch(): void {
+  void nextTick(() => searchInput.value?.focus())
 }
-watch(() => state.quickFocus, focusQuick)
+watch(() => state.searchFocus, focusSearch)
 onMounted(() => {
-  if (state.quickFocus) focusQuick()
+  if (state.searchFocus) focusSearch()
 })
 
 // Every group gets a section, empty ones too; Unassigned ('') is always last.
@@ -111,20 +108,6 @@ function onDrop(group: string, e: DragEvent): void {
   void moveHostsToGroup([host.id], group)
 }
 
-function submitQuick(): void {
-  const parsed = parseQuickConnect(quick.value)
-  quickError.value = !parsed
-  if (!parsed) return
-  // A saved host already matches — connect right away
-  const existing = state.hosts.find(
-    (h) =>
-      h.hostname === parsed.hostname && h.port === parsed.port && (!parsed.username || h.username === parsed.username)
-  )
-  if (existing) openHost(existing)
-  else state.editingHost = newHostDraft(parsed)
-  quick.value = ''
-}
-
 function duplicate(h: Host): void {
   editHost(h)
   if (!state.editingHost) return
@@ -140,19 +123,13 @@ function duplicate(h: Host): void {
       <h1>Hosts</h1>
       <div class="search">
         <Icon name="search" :size="16" />
-        <input v-model="search" placeholder="Search hosts…" />
+        <input ref="searchInput" v-model="search" placeholder="Search hosts…" />
       </div>
       <button class="btn" @click="startCreate"><Icon name="folderPlus" :size="16" /> New group</button>
       <button class="btn primary" @click="state.editingHost = newHostDraft()">
         <Icon name="plus" :size="16" /> New host
       </button>
     </header>
-
-    <form class="quick-connect" :class="{ error: quickError }" @submit.prevent="submitQuick">
-      <Icon name="bolt" :size="16" />
-      <input ref="quickInput" v-model="quick" placeholder="Quick connect: user@host:port" @input="quickError = false" />
-      <kbd>Enter</kbd>
-    </form>
 
     <div v-if="creating !== null" class="host-group">
       <div class="group-header">

@@ -342,9 +342,15 @@ h3 {
   margin-right: 8px;
 }
 
+/* The search box takes the free space; titles and buttons keep their width. */
+.view-header > :not(.search, .spacer) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .search {
   flex: 1;
-  max-width: 360px;
+  min-width: 120px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -374,37 +380,6 @@ h3 {
   height: 30px;
   max-width: none;
   margin: 0 10px 8px;
-}
-
-.quick-connect {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 14px;
-  margin-bottom: 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--accent);
-}
-
-.quick-connect:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.quick-connect.error {
-  border-color: var(--danger);
-}
-
-.quick-connect input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text);
-  font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
 kbd {
