@@ -44,7 +44,7 @@ const MAX_ICONS = 200
 
 // Snippets every install starts with. Each is added once; the user may edit or delete it.
 const DEFAULT_SNIPPETS: Snippet[] = [
-  { id: 'default-claude', name: 'claude', command: 'claude', autoRun: true, color: '#d97757' }
+  { id: 'default-claude', name: 'Run Claude', command: 'claude', autoRun: true, color: '#d97757' }
 ]
 
 const defaultFont =
