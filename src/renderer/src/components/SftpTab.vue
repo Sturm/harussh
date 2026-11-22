@@ -5,6 +5,7 @@ import { formatSize } from '../files'
 import type { Host } from '../../../shared/types'
 import { closeTab, connectSftpTab, disconnectSftpTab, editHost, SFTP_TAB, state, type Tab } from '../state'
 import FilePane from './FilePane.vue'
+import HostIcon from './HostIcon.vue'
 import Icon from './Icon.vue'
 
 const props = defineProps<{ tab: Tab; active: boolean }>()
@@ -126,9 +127,7 @@ function editThisHost(): void {
         </div>
         <div class="host-picker-list">
           <button v-for="h in pickable" :key="h.id" class="host-picker-item" @click="pick(h)">
-            <span class="host-icon small" :style="{ background: h.color }">
-              {{ (h.label || h.hostname).slice(0, 2).toUpperCase() }}
-            </span>
+            <HostIcon :host="h" :size="30" />
             <span class="host-info">
               <span class="host-label">{{ h.label || h.hostname }}</span>
               <span class="host-sub">{{ h.username }}@{{ h.hostname }}</span>

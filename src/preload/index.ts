@@ -18,6 +18,8 @@ const api: HarusshApi = {
   addGroup: (name) => ipcRenderer.invoke('groups:add', name),
   renameGroup: (from, to) => ipcRenderer.invoke('groups:rename', from, to),
   removeGroup: (name) => ipcRenderer.invoke('groups:remove', name),
+  addIcon: (data) => ipcRenderer.invoke('icons:add', data),
+  removeIcon: (id) => ipcRenderer.invoke('icons:remove', id),
 
   saveSnippet: (snippet) => ipcRenderer.invoke('snippets:save', snippet),
   deleteSnippet: (id) => ipcRenderer.invoke('snippets:delete', id),

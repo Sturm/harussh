@@ -11,6 +11,8 @@ export interface Host {
   username: string
   auth: AuthMethod
   color: string
+  // '' = picked automatically from the username/name, a preset id, or "custom:<id>"
+  icon: string
   autoReconnect: boolean
   createdAt: number
   lastConnectedAt?: number | undefined
@@ -30,10 +32,17 @@ export interface HostInput {
   username: string
   auth: AuthMethod
   color: string
+  icon: string
   autoReconnect: boolean
   password?: string | null | undefined
   privateKey?: string | null | undefined
   passphrase?: string | null | undefined
+}
+
+// An image the user added to the host icon gallery: a 128×128 PNG data URL.
+export interface CustomIcon {
+  id: string
+  data: string
 }
 
 export interface Snippet {
@@ -200,6 +209,7 @@ export interface AppData {
   commands: Record<string, CommandEntry[]>
   // Named host groups, including empty ones. Hosts without a group are "Unassigned".
   groups: string[]
+  icons: CustomIcon[]
   // false = no OS secret store; passwords/keys are kept only until the app quits
   secretsEncrypted: boolean
 }
@@ -217,6 +227,9 @@ export interface HarusshApi {
   renameGroup(from: string, to: string): Promise<GroupsUpdate>
   // Hosts in a removed group become Unassigned; none are deleted.
   removeGroup(name: string): Promise<GroupsUpdate>
+  addIcon(data: string): Promise<CustomIcon>
+  // Hosts using a removed icon fall back to the automatic one.
+  removeIcon(id: string): Promise<void>
 
   saveSnippet(snippet: Omit<Snippet, 'id'> & { id?: string }): Promise<Snippet>
   deleteSnippet(id: string): Promise<void>

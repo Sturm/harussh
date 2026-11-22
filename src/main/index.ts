@@ -159,6 +159,7 @@ function registerIpc(): void {
     themes: themes.list(),
     commands: store.getCommands(),
     groups: store.getGroups(),
+    icons: store.getIcons(),
     secretsEncrypted: store.secretsEncrypted
   }))
 
@@ -166,6 +167,8 @@ function registerIpc(): void {
   handle('hosts:delete', z.tuple([schema.id]), (id) => store.deleteHost(id))
   const group = z.string().max(200)
   handle('hosts:setGroup', z.tuple([z.array(schema.id).max(10_000), group]), (ids, name) => store.setGroup(ids, name))
+  handle('icons:add', z.tuple([schema.iconData]), (data) => store.addIcon(data))
+  handle('icons:remove', z.tuple([schema.id]), (id) => store.removeIcon(id))
   handle('groups:add', z.tuple([group]), (name) => store.addGroup(name))
   handle('groups:rename', z.tuple([group, group]), (from, to) => store.renameGroup(from, to))
   handle('groups:remove', z.tuple([group]), (name) => store.removeGroup(name))

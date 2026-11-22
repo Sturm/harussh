@@ -2,7 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { AuthMethod, HostInput } from '../../../shared/types'
 import { api } from '../api'
-import { hostColors, openHost, saveHost, state, type HostDraft } from '../state'
+import { errorMessage } from '../files'
+import { iconPresets, resolveHostIcon } from '../hostIcons'
+import { addCustomIcon, hostColors, openHost, removeCustomIcon, saveHost, state, type HostDraft } from '../state'
+import HostIcon from './HostIcon.vue'
 import Icon from './Icon.vue'
 
 const props = defineProps<{ draft: HostDraft }>()
@@ -32,6 +35,36 @@ function commitNewGroup(): void {
   newGroup.value = null
   if (name) form.group = name
 }
+// --- icon gallery ---
+
+const iconFile = ref<HTMLInputElement>()
+const autoLabel = computed(() => {
+  const icon = resolveHostIcon({ ...form, icon: '' }, [])
+  return icon.kind === 'preset' ? icon.preset.label : 'Initials'
+})
+// Previews in the gallery use this host's name and color, with a fixed icon.
+function withIcon(icon: string): typeof form {
+  return { ...form, icon }
+}
+
+async function onIconFile(): Promise<void> {
+  const file = iconFile.value?.files?.[0]
+  if (iconFile.value) iconFile.value.value = ''
+  if (!file) return
+  try {
+    const icon = await addCustomIcon(file)
+    form.icon = `custom:${icon.id}`
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
+async function removeIcon(id: string): Promise<void> {
+  if (!confirm('Remove this icon from the gallery? Hosts using it go back to the automatic icon.')) return
+  await removeCustomIcon(id)
+  if (form.icon === `custom:${id}`) form.icon = ''
+}
+
 const authOptions: { value: AuthMethod; label: string }[] = [
   { value: 'password', label: 'Password' },
   { value: 'key', label: 'SSH key' },
@@ -76,6 +109,7 @@ async function submit(connect: boolean): Promise<void> {
     username: form.username.trim(),
     auth: form.auth,
     color: form.color,
+    icon: form.icon,
     autoReconnect: form.autoReconnect,
     password: secretValue('password'),
     privateKey: secretValue('privateKey'),
@@ -108,6 +142,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   <div class="drawer-backdrop" @mousedown.self="close">
     <aside class="drawer">
       <header class="drawer-header">
+        <HostIcon :host="form" :size="32" />
         <h2>{{ isNew ? 'New host' : 'Edit host' }}</h2>
         <button class="icon-btn" title="Close (Esc)" @click="close"><Icon name="x" /></button>
       </header>
@@ -164,6 +199,72 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
               <button v-else type="button" class="chip add" @click="startNewGroup">
                 <Icon name="plus" :size="12" /> New group
               </button>
+            </div>
+          </div>
+          <div class="field">
+            <span>Icon</span>
+            <div class="icon-gallery">
+              <button
+                type="button"
+                class="icon-tile auto"
+                :class="{ selected: !form.icon }"
+                :title="`Auto — picked from the username and name (now: ${autoLabel})`"
+                @click="form.icon = ''"
+              >
+                <HostIcon :host="withIcon('')" :size="30" />
+                <span>Auto</span>
+              </button>
+            </div>
+            <div class="icon-gallery">
+              <button
+                v-for="p in iconPresets.symbols"
+                :key="p.id"
+                type="button"
+                class="icon-tile"
+                :class="{ selected: form.icon === p.id }"
+                :title="p.label"
+                @click="form.icon = p.id"
+              >
+                <HostIcon :host="withIcon(p.id)" :size="30" />
+              </button>
+            </div>
+            <div class="icon-gallery">
+              <button
+                v-for="p in iconPresets.logos"
+                :key="p.id"
+                type="button"
+                class="icon-tile"
+                :class="{ selected: form.icon === p.id }"
+                :title="p.label"
+                @click="form.icon = p.id"
+              >
+                <HostIcon :host="withIcon(p.id)" :size="30" />
+              </button>
+            </div>
+            <div class="icon-gallery">
+              <span v-for="c in state.customIcons" :key="c.id" class="icon-tile-wrap">
+                <button
+                  type="button"
+                  class="icon-tile"
+                  :class="{ selected: form.icon === `custom:${c.id}` }"
+                  title="Your icon"
+                  @click="form.icon = `custom:${c.id}`"
+                >
+                  <HostIcon :host="withIcon(`custom:${c.id}`)" :size="30" />
+                </button>
+                <button type="button" class="icon-tile-remove" title="Remove from gallery" @click="removeIcon(c.id)">
+                  <Icon name="x" :size="10" />
+                </button>
+              </span>
+              <button
+                type="button"
+                class="icon-tile add"
+                title="Add your own image (PNG, JPG, SVG…)"
+                @click="iconFile?.click()"
+              >
+                <Icon name="plus" :size="14" />
+              </button>
+              <input ref="iconFile" type="file" accept="image/*" hidden @change="onIconFile" />
             </div>
           </div>
           <div class="field">

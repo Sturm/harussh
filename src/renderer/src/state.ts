@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import type {
   CommandEntry,
+  CustomIcon,
   GroupsUpdate,
   HistoryEntry,
   Host,
@@ -13,6 +14,7 @@ import type {
   Transfer
 } from '../../shared/types'
 import { api } from './api'
+import { imageFileToIcon } from './hostIcons'
 import { builtInThemes, resolveTheme } from './themes'
 
 export type TabKind = 'ssh' | 'sftp'
@@ -45,6 +47,8 @@ export const state = reactive({
   secretsEncrypted: true,
   hosts: [] as Host[],
   groups: [] as string[],
+  // Images added to the host icon gallery.
+  customIcons: [] as CustomIcon[],
   snippets: [] as Snippet[],
   history: [] as HistoryEntry[],
   settings: {} as Settings,
@@ -77,6 +81,7 @@ export async function loadData(): Promise<void> {
   const data = await api.getData()
   state.hosts = data.hosts
   state.groups = data.groups
+  state.customIcons = data.icons
   state.snippets = data.snippets
   state.history = data.history
   state.settings = data.settings
@@ -208,6 +213,7 @@ export function newHostDraft(partial: Partial<HostInput> = {}): HostDraft {
     username: '',
     auth: 'password',
     color: hostColors[state.hosts.length % hostColors.length]!,
+    icon: '',
     autoReconnect: true,
     hasPassword: false,
     hasKey: false,
@@ -231,6 +237,18 @@ export async function saveHost(input: HostInput): Promise<Host> {
   const group = host.group.trim()
   if (group && !state.groups.includes(group)) state.groups.push(group)
   return host
+}
+
+export async function addCustomIcon(file: File): Promise<CustomIcon> {
+  const icon = await api.addIcon(await imageFileToIcon(file))
+  state.customIcons.push(icon)
+  return icon
+}
+
+export async function removeCustomIcon(id: string): Promise<void> {
+  await api.removeIcon(id)
+  state.customIcons = state.customIcons.filter((i) => i.id !== id)
+  for (const h of state.hosts) if (h.icon === `custom:${id}`) h.icon = ''
 }
 
 export async function deleteHost(host: Host): Promise<void> {

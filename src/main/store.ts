@@ -2,9 +2,19 @@ import { safeStorage, type Rectangle } from 'electron'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import type { CommandEntry, GroupsUpdate, HistoryEntry, Host, HostInput, Settings, Snippet } from '../shared/types'
+import type {
+  CommandEntry,
+  CustomIcon,
+  GroupsUpdate,
+  HistoryEntry,
+  Host,
+  HostInput,
+  Settings,
+  Snippet
+} from '../shared/types'
 
-type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase'>
+// `icon` is missing in hosts saved before icons existed.
+type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase' | 'icon'> & { icon?: string }
 type SecretField = 'password' | 'privateKey' | 'passphrase'
 export type Secrets = Partial<Record<SecretField, string>>
 
@@ -21,11 +31,14 @@ interface DataFile {
   commands: Record<string, CommandEntry[]>
   // Named groups, so a group can exist before any host is in it.
   groups?: string[]
+  // Images added to the host icon gallery.
+  icons?: CustomIcon[]
   window?: { bounds: Rectangle; maximized: boolean }
 }
 
 const MAX_HISTORY = 200
 const MAX_COMMANDS = 500
+const MAX_ICONS = 200
 
 const defaultFont =
   process.platform === 'darwin'
@@ -142,7 +155,13 @@ export class Store {
 
   private toPublic(h: StoredHost): Host {
     const s = { ...this.data.secrets[h.id], ...this.sessionSecrets[h.id] }
-    return { ...h, hasPassword: !!s.password, hasKey: !!s.privateKey, hasPassphrase: !!s.passphrase }
+    return {
+      ...h,
+      icon: h.icon ?? '',
+      hasPassword: !!s.password,
+      hasKey: !!s.privateKey,
+      hasPassphrase: !!s.passphrase
+    }
   }
 
   // --- hosts ---
@@ -200,6 +219,28 @@ export class Store {
 
     this.save()
     return this.toPublic(host)
+  }
+
+  // --- custom host icons ---
+
+  getIcons(): CustomIcon[] {
+    return this.data.icons ?? []
+  }
+
+  addIcon(data: string): CustomIcon {
+    const icons = this.getIcons()
+    if (icons.length >= MAX_ICONS) throw new Error(`You can add up to ${MAX_ICONS} icons.`)
+    const icon = { id: randomUUID(), data }
+    this.data.icons = [...icons, icon]
+    this.save()
+    return icon
+  }
+
+  removeIcon(id: string): void {
+    this.data.icons = this.getIcons().filter((i) => i.id !== id)
+    // Hosts that used it go back to the automatic icon.
+    for (const h of this.data.hosts) if (h.icon === `custom:${id}`) h.icon = ''
+    this.save()
   }
 
   deleteHost(id: string): void {

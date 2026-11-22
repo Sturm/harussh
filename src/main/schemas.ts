@@ -19,6 +19,7 @@ export const hostInput: z.ZodType<HostInput> = z.strictObject({
   username: text(255),
   auth: z.enum(['password', 'key', 'agent']),
   color: text(64),
+  icon: text(200),
   autoReconnect: z.boolean(),
   password: secret(4096),
   privateKey: secret(64 * 1024),
@@ -108,6 +109,11 @@ export const themeInput: z.ZodType<Pick<ThemeDef, 'id' | 'name' | 'type' | 'ui' 
 })
 
 export const tabId = id
+// Custom icons are resized to 128×128 PNG in the renderer before saving.
+export const iconData = z
+  .string()
+  .max(400_000)
+  .regex(/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/)
 export const termSize = z.int().min(1).max(10_000)
 export const cssColor = text(64)
 export const fileSide = z.enum(['local', 'remote'])

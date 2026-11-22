@@ -580,6 +580,13 @@ kbd {
   font-size: 14px;
   letter-spacing: 0.5px;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  overflow: hidden;
+}
+
+.host-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .host-info {
@@ -1273,10 +1280,12 @@ kbd {
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
+  gap: 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .drawer-header h2 {
+  flex: 1;
   font-size: 16px;
 }
 
@@ -1886,4 +1895,79 @@ kbd {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ---------- host icon gallery (host editor) ---------- */
+
+.icon-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.icon-gallery + .icon-gallery {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.icon-tile {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: calc(var(--radius) + 1px);
+  background: none;
+  cursor: pointer;
+}
+
+.icon-tile:hover {
+  border-color: var(--border);
+}
+
+.icon-tile.selected {
+  border-color: var(--accent);
+}
+
+.icon-tile.auto {
+  display: flex;
+  gap: 8px;
+  padding-right: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.icon-tile.add {
+  width: 38px;
+  height: 38px;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+
+.icon-tile.add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-tile-wrap {
+  position: relative;
+}
+
+.icon-tile-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  cursor: pointer;
+}
+
+.icon-tile-wrap:hover .icon-tile-remove {
+  display: grid;
 }

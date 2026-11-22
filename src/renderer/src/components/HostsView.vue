@@ -14,6 +14,7 @@ import {
   state,
   toggleGroup
 } from '../state'
+import HostIcon from './HostIcon.vue'
 import Icon from './Icon.vue'
 
 const search = ref('')
@@ -108,11 +109,6 @@ function onDrop(group: string, e: DragEvent): void {
   if (!host || host.group.trim() === group) return
   e.preventDefault()
   void moveHostsToGroup([host.id], group)
-}
-
-function initials(h: Host): string {
-  const name = h.label || h.hostname
-  return name.slice(0, 2).toUpperCase()
 }
 
 function submitQuick(): void {
@@ -243,7 +239,7 @@ function duplicate(h: Host): void {
           @click="openHost(h)"
           @keydown.enter="openHost(h)"
         >
-          <div class="host-icon" :style="{ background: h.color }">{{ initials(h) }}</div>
+          <HostIcon :host="h" />
           <div class="host-info">
             <div class="host-label">{{ h.label || h.hostname }}</div>
             <div class="host-sub">
