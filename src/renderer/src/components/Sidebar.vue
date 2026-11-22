@@ -17,9 +17,6 @@ const connected = computed(() => state.tabs.filter((t) => t.status === 'connecte
 
 <template>
   <nav class="sidebar">
-    <div class="brand">
-      <span class="brand-logo"><Icon name="prompt" :size="18" /></span>
-    </div>
     <button
       v-for="item in items"
       :key="item.view"
