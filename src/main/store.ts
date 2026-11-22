@@ -29,6 +29,8 @@ interface DataFile {
   knownHosts: Record<string, string>
   // Commands typed in terminal sessions, per host id, newest first.
   commands: Record<string, CommandEntry[]>
+  // Ids of built-in snippets already added once, so a deleted one stays deleted.
+  seededSnippets?: string[]
   // Named groups, so a group can exist before any host is in it.
   groups?: string[]
   // Images added to the host icon gallery.
@@ -39,6 +41,11 @@ interface DataFile {
 const MAX_HISTORY = 200
 const MAX_COMMANDS = 500
 const MAX_ICONS = 200
+
+// Snippets every install starts with. Each is added once; the user may edit or delete it.
+const DEFAULT_SNIPPETS: Snippet[] = [
+  { id: 'default-claude', name: 'claude', command: 'claude', autoRun: true, color: '#d97757' }
+]
 
 const defaultFont =
   process.platform === 'darwin'
@@ -100,6 +107,19 @@ export class Store {
     this.file = join(dir, 'harussh-data.json')
     this.data = this.load()
     this.migrateLegacySecrets()
+    this.seedSnippets()
+  }
+
+  private seedSnippets(): void {
+    const seeded = new Set(this.data.seededSnippets)
+    const missing = DEFAULT_SNIPPETS.filter((s) => !seeded.has(s.id))
+    if (!missing.length) return
+    for (const s of missing) {
+      if (!this.data.snippets.some((x) => x.id === s.id)) this.data.snippets.unshift({ ...s })
+      seeded.add(s.id)
+    }
+    this.data.seededSnippets = [...seeded]
+    this.save()
   }
 
   private migrateLegacySecrets(): void {
@@ -138,7 +158,12 @@ export class Store {
         ...empty,
         ...parsed,
         settings: { ...defaultSettings, ...parsed.settings },
-        commands: normalizeCommands(parsed.commands)
+        commands: normalizeCommands(parsed.commands),
+        // Snippets saved before colors existed have no `color`.
+        snippets: ((parsed.snippets ?? []) as (Omit<Snippet, 'color'> & { color?: string })[]).map((s) => ({
+          ...s,
+          color: s.color ?? ''
+        }))
       }
     } catch (err) {
       console.error('Could not read data file, starting fresh:', err)

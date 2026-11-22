@@ -1946,3 +1946,25 @@ kbd {
 .icon-tile-wrap:hover .icon-tile-remove {
   display: grid;
 }
+
+/* ---------- snippet colors ---------- */
+
+.snippet-item.colored,
+.snippet-row.colored {
+  border-color: color-mix(in srgb, var(--snippet-color) 55%, transparent);
+  background: color-mix(in srgb, var(--snippet-color) 28%, var(--surface));
+}
+
+.snippet-item.colored:hover {
+  border-color: var(--snippet-color);
+  background: color-mix(in srgb, var(--snippet-color) 38%, var(--surface));
+}
+
+.snippet-item.colored .snippet-item-name .icon {
+  color: var(--snippet-color);
+}
+
+.color-swatch.none {
+  background: linear-gradient(135deg, transparent 45%, var(--danger) 45% 55%, transparent 55%), var(--surface2);
+  border-color: var(--border);
+}

@@ -35,6 +35,9 @@ export type View = 'hosts' | 'snippets' | 'history' | 'themes' | 'settings'
 export type HostDraft = HostInput & { hasPassword: boolean; hasKey: boolean; hasPassphrase: boolean }
 export type SnippetDraft = Omit<Snippet, 'id'> & { id?: string }
 
+// Claude orange first, then the host palette.
+export const snippetColors = ['#d97757', '#3d8bfd', '#3fcf8e', '#f5b84a', '#f05d6c', '#a78bfa', '#2dd4bf', '#8b93a7']
+
 export const hostColors = ['#3d8bfd', '#3fcf8e', '#f5b84a', '#f05d6c', '#a78bfa', '#2dd4bf', '#ff8a4c', '#8b93a7']
 
 const initialView = 'hosts' as View

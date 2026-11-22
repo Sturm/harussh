@@ -30,7 +30,8 @@ export const snippetInput: z.ZodType<Omit<Snippet, 'id'> & { id?: string }> = z.
   id: id.exactOptional(),
   name: text(200),
   command: text(64 * 1024),
-  autoRun: z.boolean()
+  autoRun: z.boolean(),
+  color: text(64)
 })
 
 export const settingsPatch: z.ZodType<Partial<Settings>> = z.strictObject({

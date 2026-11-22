@@ -51,6 +51,8 @@ export interface Snippet {
   command: string
   // true = press Enter right after pasting
   autoRun: boolean
+  // CSS color shown on the snippet; '' = none
+  color: string
 }
 
 export interface HistoryEntry {

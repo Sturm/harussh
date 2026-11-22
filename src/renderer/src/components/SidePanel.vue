@@ -33,7 +33,7 @@ const commands = computed(() =>
         v-if="state.sidePanelTab === 'snippets'"
         class="icon-btn"
         title="New snippet"
-        @click="state.editingSnippet = { name: '', command: '', autoRun: true }"
+        @click="state.editingSnippet = { name: '', command: '', autoRun: true, color: '' }"
       >
         <Icon name="plus" :size="16" />
       </button>
@@ -58,6 +58,8 @@ const commands = computed(() =>
         v-for="s in snippets"
         :key="s.id"
         class="snippet-item"
+        :class="{ colored: s.color }"
+        :style="s.color ? { '--snippet-color': s.color } : undefined"
         :title="s.autoRun ? 'Click to run' : 'Click to paste (without Enter)'"
         @click="runSnippet(s, props.tabId)"
       >
