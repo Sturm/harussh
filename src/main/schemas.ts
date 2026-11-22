@@ -6,11 +6,12 @@ import type { HostInput, Settings, Snippet, ThemeDef, ThemeTerminal, ThemeUi } f
 
 export const id = z.string().min(1).max(128)
 const text = (max: number): z.ZodString => z.string().max(max)
-// undefined = keep, null = remove, string = set
-const secret = (max: number): z.ZodExactOptional<z.ZodNullable<z.ZodString>> => text(max).nullable().exactOptional()
+// undefined = keep, null = remove, string = set. Plain optional (not exactOptional):
+// the host editor sends `password: undefined` for "keep", and IPC preserves the key.
+const secret = (max: number): z.ZodOptional<z.ZodNullable<z.ZodString>> => text(max).nullable().optional()
 
 export const hostInput: z.ZodType<HostInput> = z.strictObject({
-  id: id.exactOptional(),
+  id: id.optional(),
   label: text(200),
   group: text(200),
   hostname: z.string().trim().min(1).max(255),
