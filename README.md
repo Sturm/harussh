@@ -1,6 +1,8 @@
 # harussh
 
-Minimal SSH client.
+Modern personal SSH client.
+
+![harussh, a modern personal SSH client](docs/screenshot.jpg)
 
 ## Installation
 
