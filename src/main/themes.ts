@@ -4,12 +4,13 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  statSync,
   watch,
   writeFileSync,
   type FSWatcher
 } from 'node:fs'
-import { basename, join } from 'node:path'
-import type { ThemeDef } from '../shared/types'
+import { basename, dirname, join } from 'node:path'
+import type { ThemeBackground, ThemeDef } from '../shared/types'
 import { themeTerminal, themeUi } from './schemas'
 
 const EXAMPLE: ThemeDef = {
@@ -30,6 +31,40 @@ const EXAMPLE: ThemeDef = {
     background: '#1a131c',
     foreground: '#f3e3e8',
     cursor: '#ff7a59'
+  }
+}
+
+const IMAGE_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif'
+}
+const MAX_IMAGE = 25 * 1024 * 1024
+
+const clamp = (v: unknown, min: number, max: number, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback
+
+/** `background` from a theme file: the image must be a plain file name in the themes folder. */
+function readBackground(raw: unknown, dir: string): ThemeBackground | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined
+  const bg = raw as Record<string, unknown>
+  const name = typeof bg.image === 'string' ? bg.image : ''
+  const ext = /^[\w .-]+\.(\w+)$/.exec(name)?.[1]?.toLowerCase()
+  const mime = ext && IMAGE_TYPES[ext]
+  if (!mime || name.startsWith('.')) return undefined
+  const file = join(dir, name)
+  try {
+    if (statSync(file).size > MAX_IMAGE) return undefined
+    return {
+      image: `data:${mime};base64,${readFileSync(file).toString('base64')}`,
+      dim: clamp(bg.dim, 0, 0.9, 0.2),
+      position: typeof bg.position === 'string' && bg.position.length <= 100 ? bg.position : 'center',
+      blur: clamp(bg.blur, 0, 40, 12)
+    }
+  } catch {
+    return undefined
   }
 }
 
@@ -67,6 +102,7 @@ export class ThemeStore {
         type: raw.type === 'light' ? 'light' : 'dark',
         ui: themeUi.parse(raw.ui),
         terminal: themeTerminal.parse(raw.terminal),
+        background: readBackground(raw.background, dirname(path)),
         custom: true,
         file: path
       }

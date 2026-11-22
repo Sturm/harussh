@@ -1947,6 +1947,19 @@ kbd {
   display: grid;
 }
 
+/* ---------- theme wallpaper ---------- */
+
+.app.has-backdrop {
+  background:
+    linear-gradient(rgb(0 0 0 / var(--backdrop-dim)), rgb(0 0 0 / var(--backdrop-dim))),
+    var(--backdrop-image) var(--backdrop-position) / cover no-repeat;
+}
+
+.app.has-backdrop
+  :is(.tabbar, .sidebar, .host-card, .drawer, .snippet-panel, .file-pane, .transfers, .modal, .search, .btn) {
+  backdrop-filter: blur(var(--backdrop-blur)) saturate(1.2);
+}
+
 /* ---------- snippet colors ---------- */
 
 .snippet-item.colored,

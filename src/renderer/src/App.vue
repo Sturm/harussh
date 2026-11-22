@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { api, isMac, matchShortcut } from './api'
 import { activate, closeTab, currentTheme, cycleTab, loadData, newConnection, state } from './state'
 import { applyTheme } from './themes'
@@ -23,6 +23,18 @@ watch(
   },
   { immediate: true }
 )
+
+// Theme wallpaper, as CSS variables used by `.app.has-backdrop`.
+const backdrop = computed(() => {
+  const bg = currentTheme.value.background
+  if (!bg) return undefined
+  return {
+    '--backdrop-image': `url("${bg.image}")`,
+    '--backdrop-dim': String(bg.dim),
+    '--backdrop-position': bg.position,
+    '--backdrop-blur': `${bg.blur}px`
+  }
+})
 
 function onKey(e: KeyboardEvent): void {
   const shortcut = matchShortcut(e)
@@ -52,7 +64,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
 </script>
 
 <template>
-  <div v-if="state.ready" class="app" :class="isMac ? 'is-mac' : 'is-pc'">
+  <div
+    v-if="state.ready"
+    class="app"
+    :class="[isMac ? 'is-mac' : 'is-pc', { 'has-backdrop': backdrop }]"
+    :style="backdrop"
+  >
     <TabBar />
     <div class="body">
       <div v-show="state.active === 'home'" class="home">

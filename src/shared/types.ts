@@ -134,12 +134,26 @@ export interface ThemeTerminal {
   brightWhite: string
 }
 
+// Optional wallpaper behind the whole window. Panels show it through
+// translucent (rgba) theme colors.
+export interface ThemeBackground {
+  // data: URL. In a theme file: the name of an image next to the JSON, e.g. "wallpaper.jpg".
+  image: string
+  // 0–0.9: how much the image is darkened
+  dim: number
+  // CSS background-position, e.g. "center" or "70% 30%"
+  position: string
+  // px of blur behind panels and cards (frosted glass); 0 = off
+  blur: number
+}
+
 export interface ThemeDef {
   id: string
   name: string
   type: 'dark' | 'light'
   ui: Partial<ThemeUi>
   terminal: Partial<ThemeTerminal>
+  background?: ThemeBackground | undefined
   custom?: boolean
   file?: string
 }
@@ -150,6 +164,7 @@ export interface ResolvedTheme {
   type: 'dark' | 'light'
   ui: ThemeUi
   terminal: ThemeTerminal
+  background?: ThemeBackground | undefined
   custom?: boolean | undefined
 }
 

@@ -159,7 +159,8 @@ export function resolveTheme(def: ThemeDef): ResolvedTheme {
     type: def.type,
     custom: def.custom,
     ui: { ...(light ? lightUi : darkUi), ...def.ui },
-    terminal: { ...(light ? lightTerminal : darkTerminal), ...def.terminal }
+    terminal: { ...(light ? lightTerminal : darkTerminal), ...def.terminal },
+    background: def.background
   }
 }
 

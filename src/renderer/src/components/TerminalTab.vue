@@ -9,6 +9,7 @@ import { closeTab, currentTheme, editHost, recordCommand, state, type Tab } from
 import Icon from './Icon.vue'
 import SidePanel from './SidePanel.vue'
 import { CommandCapture } from '../commandCapture'
+import type { ResolvedTheme } from '../../../shared/types'
 
 const props = defineProps<{ tab: Tab; active: boolean }>()
 
@@ -40,6 +41,12 @@ function onContextMenu(): void {
   else void paste()
 }
 
+// With a theme wallpaper the tab paints the (translucent) background and
+// xterm draws on a transparent canvas, so the color is not applied twice.
+function xtermTheme(theme: ResolvedTheme): ResolvedTheme['terminal'] {
+  return theme.background ? { ...theme.terminal, background: 'rgba(0, 0, 0, 0)' } : theme.terminal
+}
+
 onMounted(() => {
   const s = state.settings
   term = new Terminal({
@@ -49,7 +56,8 @@ onMounted(() => {
     cursorStyle: s.cursorStyle,
     cursorBlink: s.cursorBlink,
     scrollback: s.scrollback,
-    theme: currentTheme.value.terminal,
+    theme: xtermTheme(currentTheme.value),
+    allowTransparency: !!currentTheme.value.background,
     macOptionIsMeta: true
   })
   fit = new FitAddon()
@@ -127,7 +135,8 @@ watch(
 watch(
   () => [currentTheme.value, { ...state.settings }] as const,
   ([theme, s]) => {
-    term.options.theme = theme.terminal
+    term.options.allowTransparency = !!theme.background
+    term.options.theme = xtermTheme(theme)
     term.options.fontFamily = s.fontFamily
     term.options.fontSize = s.fontSize
     term.options.lineHeight = s.lineHeight
