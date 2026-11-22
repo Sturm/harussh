@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import type { AppData } from '../shared/types'
 import * as schema from './schemas'
+import { SftpManager } from './sftp'
 import { SshManager } from './ssh'
 import { Store } from './store'
 import { ThemeStore } from './themes'
@@ -29,6 +30,7 @@ let win: BrowserWindow | null = null
 let store: Store
 let themes: ThemeStore
 let ssh: SshManager
+let sftp: SftpManager
 
 function send(channel: string, ...args: unknown[]): void {
   if (win && !win.isDestroyed()) win.webContents.send(channel, ...args)
@@ -78,6 +80,7 @@ function createWindow(): void {
   })
   win.on('closed', () => {
     ssh.closeAll()
+    sftp.closeAll()
     win = null
   })
 
@@ -212,6 +215,22 @@ function registerIpc(): void {
   on('ssh:reconnect', z.tuple([tabId]), (tab) => ssh.reconnect(tab))
   on('ssh:trustHostKey', z.tuple([tabId]), (tab) => ssh.trustHostKey(tab))
 
+  const { fileSide, fsPath, fsPaths } = schema
+  on('sftp:open', z.tuple([tabId, schema.id]), (tab, hostId) => sftp.open(tab, hostId))
+  on('sftp:close', z.tuple([tabId]), (tab) => sftp.close(tab))
+  on('sftp:reconnect', z.tuple([tabId]), (tab) => sftp.reconnect(tab))
+  on('sftp:trustHostKey', z.tuple([tabId]), (tab) => sftp.trustHostKey(tab))
+  on('sftp:upload', z.tuple([tabId, fsPaths, fsPath]), (tab, from, to) => sftp.upload(tab, from, to))
+  on('sftp:download', z.tuple([tabId, fsPaths, fsPath]), (tab, from, to) => sftp.download(tab, from, to))
+  on('sftp:cancel', z.tuple([schema.id]), (id) => sftp.cancel(id))
+  handle('fs:home', z.tuple([fileSide, tabId]), (side, tab) => sftp.home(side, tab))
+  handle('fs:list', z.tuple([fileSide, tabId, fsPath]), (side, tab, path) => sftp.list(side, tab, path))
+  handle('fs:mkdir', z.tuple([fileSide, tabId, fsPath]), (side, tab, path) => sftp.mkdir(side, tab, path))
+  handle('fs:rename', z.tuple([fileSide, tabId, fsPath, fsPath]), (side, tab, from, to) =>
+    sftp.rename(side, tab, from, to)
+  )
+  handle('fs:delete', z.tuple([fileSide, tabId, fsPaths]), (side, tab, paths) => sftp.delete(side, tab, paths))
+
   handle('clipboard:read', noArgs, () => clipboard.readText())
   on('clipboard:write', z.tuple([z.string().max(16 * 1024 * 1024)]), (text) => {
     void clipboard.writeText(text)
@@ -240,6 +259,10 @@ if (!app.requestSingleInstanceLock()) {
     ssh = new SshManager(store, {
       data: (tabId, data) => send('ssh:data', tabId, data),
       status: (tabId, event) => send('ssh:status', tabId, event)
+    })
+    sftp = new SftpManager(store, {
+      status: (tabId, event) => send('sftp:status', tabId, event),
+      transfer: (transfer) => send('sftp:transfer', transfer)
     })
     themes.watch(() => send('themes:changed'))
     powerMonitor.on('resume', () => ssh.onResume())
@@ -272,6 +295,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     ssh?.closeAll()
+    sftp?.closeAll()
     themes?.dispose()
   })
 }

@@ -11,6 +11,7 @@ import HistoryView from './components/HistoryView.vue'
 import ThemesView from './components/ThemesView.vue'
 import SettingsView from './components/SettingsView.vue'
 import TerminalTab from './components/TerminalTab.vue'
+import SftpTab from './components/SftpTab.vue'
 import HostEditor from './components/HostEditor.vue'
 import SnippetEditor from './components/SnippetEditor.vue'
 
@@ -35,7 +36,7 @@ function onKey(e: KeyboardEvent): void {
   else if (shortcut === 'prev') cycleTab(-1)
   else if (shortcut === 'snippets') {
     if (state.active === 'home') state.view = 'snippets'
-    else state.snippetPanel = !state.snippetPanel
+    else if (state.tabs.find((t) => t.id === state.active)?.kind === 'ssh') state.snippetPanel = !state.snippetPanel
   } else {
     const tab = state.tabs[Number(shortcut.slice(4)) - 1]
     if (tab) activate(tab.id)
@@ -64,7 +65,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
           <SettingsView v-else />
         </main>
       </div>
-      <TerminalTab v-for="tab in state.tabs" :key="tab.id" :tab="tab" :active="state.active === tab.id" />
+      <SftpTab v-if="state.sftpTab" :tab="state.sftpTab" :active="state.active === state.sftpTab.id" />
+      <template v-for="tab in state.tabs" :key="tab.id">
+        <SftpTab v-if="tab.kind === 'sftp'" :tab="tab" :active="state.active === tab.id" />
+        <TerminalTab v-else :tab="tab" :active="state.active === tab.id" />
+      </template>
     </div>
     <Transition name="drawer">
       <HostEditor v-if="state.editingHost" :key="state.editingHost.id ?? 'new'" :draft="state.editingHost" />

@@ -143,6 +143,40 @@ export interface SessionStatusEvent {
   code?: 'hostkey' | 'auth' | undefined
 }
 
+export type FileSide = 'local' | 'remote'
+
+export interface FileEntry {
+  name: string
+  // Symlinks report the type of their target; `link` marks them.
+  type: 'file' | 'dir' | 'other'
+  link: boolean
+  size: number
+  // ms since epoch
+  mtime: number
+  mode: number
+}
+
+export interface DirListing {
+  path: string
+  entries: FileEntry[]
+}
+
+export type TransferState = 'queued' | 'running' | 'done' | 'error' | 'canceled'
+
+export interface Transfer {
+  id: string
+  tabId: string
+  direction: 'upload' | 'download'
+  name: string
+  // Directory the item is copied into (on the destination side).
+  destDir: string
+  bytes: number
+  total: number
+  files: number
+  state: TransferState
+  error?: string | undefined
+}
+
 export interface AppData {
   hosts: Host[]
   snippets: Snippet[]
@@ -184,6 +218,24 @@ export interface HarusshApi {
   sshTrustHostKey(tabId: string): void
   onSshData(cb: (tabId: string, data: string) => void): () => void
   onSshStatus(cb: (tabId: string, event: SessionStatusEvent) => void): () => void
+
+  sftpOpen(tabId: string, hostId: string): void
+  sftpClose(tabId: string): void
+  sftpReconnect(tabId: string): void
+  sftpTrustHostKey(tabId: string): void
+  onSftpStatus(cb: (tabId: string, event: SessionStatusEvent) => void): () => void
+  onSftpTransfer(cb: (transfer: Transfer) => void): () => void
+  // Paths are absolute: POSIX on the remote side, native on the local side.
+  fsHome(side: FileSide, tabId: string): Promise<string>
+  fsList(side: FileSide, tabId: string, path: string): Promise<DirListing>
+  fsMkdir(side: FileSide, tabId: string, path: string): Promise<void>
+  fsRename(side: FileSide, tabId: string, from: string, to: string): Promise<void>
+  // Local files go to the system trash; remote files are deleted permanently.
+  fsDelete(side: FileSide, tabId: string, paths: string[]): Promise<void>
+  sftpUpload(tabId: string, localPaths: string[], remoteDir: string): void
+  sftpDownload(tabId: string, remotePaths: string[], localDir: string): void
+  sftpCancel(transferId: string): void
+  pathForFile(file: File): string
 
   clipboardRead(): Promise<string>
   clipboardWrite(text: string): void

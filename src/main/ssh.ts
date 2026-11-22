@@ -1,7 +1,7 @@
-import { Client, type ClientChannel, type ConnectConfig, type SyncHostVerifier } from 'ssh2'
-import { createHash } from 'node:crypto'
+import { Client, type ClientChannel, type SyncHostVerifier } from 'ssh2'
 import { StringDecoder } from 'node:string_decoder'
 import type { SessionStatus, SessionStatusEvent } from '../shared/types'
+import { answerKeyboardInteractive, connectConfig, fingerprint, knownHostKey } from './connection'
 import type { Store } from './store'
 
 const MAX_RECONNECT_ATTEMPTS = 10
@@ -95,7 +95,7 @@ export class SshManager {
     const s = this.sessions.get(tabId)
     const host = s && this.store.getHost(s.hostId)
     if (!s || !host || !s.pendingFingerprint) return
-    this.store.setKnownHost(`${host.hostname}:${host.port}`, s.pendingFingerprint)
+    this.store.setKnownHost(knownHostKey(host), s.pendingFingerprint)
     s.pendingFingerprint = null
     this.reconnect(tabId)
   }
@@ -116,7 +116,7 @@ export class SshManager {
     const secrets = this.store.getSecrets(host.id)
     const settings = this.store.getSettings()
     const target = `${host.username}@${host.hostname}:${host.port}`
-    const knownKey = `${host.hostname}:${host.port}`
+    const knownKey = knownHostKey(host)
 
     this.setStatus(s, {
       status: s.everConnected ? 'reconnecting' : 'connecting',
@@ -132,7 +132,7 @@ export class SshManager {
     let hostKeyMismatch = false
 
     const hostVerifier: SyncHostVerifier = (key) => {
-      const fp = 'SHA256:' + createHash('sha256').update(key).digest('base64').replace(/=+$/, '')
+      const fp = fingerprint(key)
       const known = this.store.getKnownHost(knownKey)
       if (!known) {
         this.store.setKnownHost(knownKey, fp)
@@ -145,33 +145,8 @@ export class SshManager {
       return false
     }
 
-    const config: ConnectConfig = {
-      host: host.hostname,
-      port: host.port,
-      username: host.username,
-      readyTimeout: 20_000,
-      keepaliveInterval: Math.max(5, settings.keepAliveInterval) * 1000,
-      keepaliveCountMax: 3,
-      tryKeyboard: true,
-      hostVerifier
-    }
-    if (host.auth === 'password') {
-      if (secrets.password) config.password = secrets.password
-    } else if (host.auth === 'key') {
-      if (secrets.privateKey) config.privateKey = secrets.privateKey
-      if (secrets.passphrase) config.passphrase = secrets.passphrase
-      if (secrets.password) config.password = secrets.password
-    } else {
-      const agent =
-        process.platform === 'win32'
-          ? process.env.SSH_AUTH_SOCK || '\\\\.\\pipe\\openssh-ssh-agent'
-          : process.env.SSH_AUTH_SOCK
-      if (agent) config.agent = agent
-    }
-
-    client.on('keyboard-interactive', (_name, _instr, _lang, prompts, finish) => {
-      finish(prompts.map(() => secrets.password ?? ''))
-    })
+    const config = connectConfig(host, secrets, settings, hostVerifier)
+    answerKeyboardInteractive(client, secrets)
 
     client.on('ready', () => {
       client.shell({ term: 'xterm-256color', cols: s.cols, rows: s.rows }, (err, stream) => {

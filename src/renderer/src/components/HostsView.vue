@@ -113,6 +113,9 @@ function duplicate(h: Host): void {
             </div>
           </div>
           <div class="host-actions" @click.stop>
+            <button class="icon-btn" title="SFTP" @click="openHost(h, 'sftp')">
+              <Icon name="folder" :size="15" />
+            </button>
             <button class="icon-btn" title="Edit" @click="editHost(h)"><Icon name="edit" :size="15" /></button>
             <button class="icon-btn" title="Duplicate" @click="duplicate(h)"><Icon name="copy" :size="15" /></button>
             <button class="icon-btn danger" title="Delete" @click="deleteHost(h)">

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { HarusshApi } from '../shared/types'
 
 function subscribe<A extends unknown[]>(channel: string, cb: (...args: A) => void): () => void {
@@ -38,6 +38,22 @@ const api: HarusshApi = {
   sshTrustHostKey: (tabId) => ipcRenderer.send('ssh:trustHostKey', tabId),
   onSshData: (cb) => subscribe('ssh:data', cb),
   onSshStatus: (cb) => subscribe('ssh:status', cb),
+
+  sftpOpen: (tabId, hostId) => ipcRenderer.send('sftp:open', tabId, hostId),
+  sftpClose: (tabId) => ipcRenderer.send('sftp:close', tabId),
+  sftpReconnect: (tabId) => ipcRenderer.send('sftp:reconnect', tabId),
+  sftpTrustHostKey: (tabId) => ipcRenderer.send('sftp:trustHostKey', tabId),
+  onSftpStatus: (cb) => subscribe('sftp:status', cb),
+  onSftpTransfer: (cb) => subscribe('sftp:transfer', cb),
+  fsHome: (side, tabId) => ipcRenderer.invoke('fs:home', side, tabId),
+  fsList: (side, tabId, path) => ipcRenderer.invoke('fs:list', side, tabId, path),
+  fsMkdir: (side, tabId, path) => ipcRenderer.invoke('fs:mkdir', side, tabId, path),
+  fsRename: (side, tabId, from, to) => ipcRenderer.invoke('fs:rename', side, tabId, from, to),
+  fsDelete: (side, tabId, paths) => ipcRenderer.invoke('fs:delete', side, tabId, paths),
+  sftpUpload: (tabId, localPaths, remoteDir) => ipcRenderer.send('sftp:upload', tabId, localPaths, remoteDir),
+  sftpDownload: (tabId, remotePaths, localDir) => ipcRenderer.send('sftp:download', tabId, remotePaths, localDir),
+  sftpCancel: (transferId) => ipcRenderer.send('sftp:cancel', transferId),
+  pathForFile: (file) => webUtils.getPathForFile(file),
 
   clipboardRead: () => ipcRenderer.invoke('clipboard:read'),
   clipboardWrite: (text) => ipcRenderer.send('clipboard:write', text),

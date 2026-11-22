@@ -1,10 +1,23 @@
 import { computed, reactive } from 'vue'
-import type { HistoryEntry, Host, HostInput, SessionStatus, Settings, Snippet, ThemeDef } from '../../shared/types'
+import type {
+  HistoryEntry,
+  Host,
+  HostInput,
+  SessionStatus,
+  SessionStatusEvent,
+  Settings,
+  Snippet,
+  ThemeDef,
+  Transfer
+} from '../../shared/types'
 import { api } from './api'
 import { builtInThemes, resolveTheme } from './themes'
 
+export type TabKind = 'ssh' | 'sftp'
+
 export interface Tab {
   id: string
+  kind: TabKind
   hostId: string
   title: string
   color: string
@@ -31,6 +44,10 @@ export const state = reactive({
   settings: {} as Settings,
   customThemes: [] as ThemeDef[],
   tabs: [] as Tab[],
+  // The fixed "SFTP" tab next to "Hosts": picks a host inside the tab instead of
+  // opening a new one. Created on first use.
+  sftpTab: null as Tab | null,
+  transfers: [] as Transfer[],
   active: 'home',
   lastSessionTab: null as string | null,
   view: initialView,
@@ -60,13 +77,33 @@ api.onThemesChanged(() => {
   void api.listThemes().then((themes) => (state.customThemes = themes))
 })
 
-api.onSshStatus((tabId, event) => {
-  const tab = state.tabs.find((t) => t.id === tabId)
+export const SFTP_TAB = 'sftp'
+
+function findTab(id: string): Tab | undefined {
+  return id === SFTP_TAB ? (state.sftpTab ?? undefined) : state.tabs.find((t) => t.id === id)
+}
+
+function applyStatus(tabId: string, event: SessionStatusEvent): Tab | undefined {
+  const tab = findTab(tabId)
   if (!tab) return
   tab.status = event.status
   tab.message = event.message
   tab.code = event.code
+  return tab
+}
+
+api.onSshStatus((tabId, event) => {
+  if (!applyStatus(tabId, event)) return
   if (event.status === 'connected' || event.status === 'error') void refreshHistory()
+})
+
+api.onSftpStatus((tabId, event) => void applyStatus(tabId, event))
+
+api.onSftpTransfer((transfer) => {
+  if (!findTab(transfer.tabId)) return
+  const idx = state.transfers.findIndex((t) => t.id === transfer.id)
+  if (idx >= 0) state.transfers[idx] = transfer
+  else state.transfers.push(transfer)
 })
 
 export async function refreshHistory(): Promise<void> {
@@ -77,7 +114,7 @@ export async function refreshHistory(): Promise<void> {
 
 export function activate(id: string): void {
   state.active = id
-  if (id !== 'home') state.lastSessionTab = id
+  if (state.tabs.find((t) => t.id === id)?.kind === 'ssh') state.lastSessionTab = id
 }
 
 /** "+" / new-tab shortcut: back to the hosts list with quick connect focused. */
@@ -87,11 +124,12 @@ export function newConnection(): void {
   state.quickFocus++
 }
 
-export function openHost(host: Host): void {
-  const same = state.tabs.filter((t) => t.hostId === host.id).length
-  const label = host.label || host.hostname
+export function openHost(host: Host, kind: TabKind = 'ssh'): void {
+  const same = state.tabs.filter((t) => t.hostId === host.id && t.kind === kind).length
+  const label = (host.label || host.hostname) + (kind === 'sftp' ? ' — SFTP' : '')
   const tab: Tab = {
     id: crypto.randomUUID(),
+    kind,
     hostId: host.id,
     title: same ? `${label} (${same + 1})` : label,
     color: host.color,
@@ -102,18 +140,48 @@ export function openHost(host: Host): void {
 }
 
 export function closeTab(id: string): void {
+  if (id === SFTP_TAB) {
+    disconnectSftpTab()
+    return
+  }
   const idx = state.tabs.findIndex((t) => t.id === id)
   if (idx < 0) return
-  api.sshClose(id)
+  if (state.tabs[idx]!.kind === 'sftp') {
+    api.sftpClose(id)
+    state.transfers = state.transfers.filter((t) => t.tabId !== id)
+  } else {
+    api.sshClose(id)
+  }
   state.tabs.splice(idx, 1)
-  if (state.lastSessionTab === id) state.lastSessionTab = state.tabs.at(-1)?.id ?? null
+  if (state.lastSessionTab === id) state.lastSessionTab = state.tabs.findLast((t) => t.kind === 'ssh')?.id ?? null
   if (state.active === id) activate(state.tabs[Math.min(idx, state.tabs.length - 1)]?.id ?? 'home')
 }
 
 export function cycleTab(dir: 1 | -1): void {
-  const ids = ['home', ...state.tabs.map((t) => t.id)]
+  const ids = ['home', ...(state.sftpTab ? [SFTP_TAB] : []), ...state.tabs.map((t) => t.id)]
   const idx = ids.indexOf(state.active)
   activate(ids[(idx + dir + ids.length) % ids.length] ?? 'home')
+}
+
+export function openSftpTab(): void {
+  state.sftpTab ??= { id: SFTP_TAB, kind: 'sftp', hostId: '', title: 'SFTP', color: '', status: 'disconnected' }
+  activate(SFTP_TAB)
+}
+
+export function connectSftpTab(host: Host): void {
+  const tab = state.sftpTab
+  if (!tab) return
+  if (tab.hostId) disconnectSftpTab()
+  Object.assign(tab, { hostId: host.id, color: host.color, status: 'connecting', message: undefined, code: undefined })
+}
+
+/** Back to the host picker. */
+export function disconnectSftpTab(): void {
+  const tab = state.sftpTab
+  if (!tab?.hostId) return
+  api.sftpClose(SFTP_TAB)
+  state.transfers = state.transfers.filter((t) => t.tabId !== SFTP_TAB)
+  Object.assign(tab, { hostId: '', color: '', status: 'disconnected', message: undefined, code: undefined })
 }
 
 // --- hosts ---

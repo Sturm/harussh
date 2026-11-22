@@ -108,3 +108,6 @@ export const themeInput: z.ZodType<Pick<ThemeDef, 'id' | 'name' | 'type' | 'ui' 
 export const tabId = id
 export const termSize = z.int().min(1).max(10_000)
 export const cssColor = text(64)
+export const fileSide = z.enum(['local', 'remote'])
+export const fsPath = z.string().min(1).max(4096)
+export const fsPaths = z.array(fsPath).min(1).max(10_000)
