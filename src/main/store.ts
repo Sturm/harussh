@@ -2,7 +2,7 @@ import { safeStorage, type Rectangle } from 'electron'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import type { CommandEntry, HistoryEntry, Host, HostInput, Settings, Snippet } from '../shared/types'
+import type { CommandEntry, GroupsUpdate, HistoryEntry, Host, HostInput, Settings, Snippet } from '../shared/types'
 
 type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase'>
 type SecretField = 'password' | 'privateKey' | 'passphrase'
@@ -19,6 +19,8 @@ interface DataFile {
   knownHosts: Record<string, string>
   // Commands typed in terminal sessions, per host id, newest first.
   commands: Record<string, CommandEntry[]>
+  // Named groups, so a group can exist before any host is in it.
+  groups?: string[]
   window?: { bounds: Rectangle; maximized: boolean }
 }
 
@@ -41,7 +43,8 @@ export const defaultSettings: Settings = {
   cursorBlink: true,
   scrollback: 10000,
   copyOnSelect: false,
-  keepAliveInterval: 15
+  keepAliveInterval: 15,
+  collapsedGroups: []
 }
 
 function encrypt(value: string): string {
@@ -176,6 +179,8 @@ export class Store {
     }
     if (existing) this.data.hosts = this.data.hosts.map((h) => (h.id === id ? host : h))
     else this.data.hosts.push(host)
+    // Keep a group typed in the host editor even after its hosts move out.
+    if (host.group.trim()) this.data.groups = [...new Set([...(this.data.groups ?? []), host.group.trim()])]
 
     const secrets = { ...this.data.secrets[id] }
     const session = { ...this.sessionSecrets[id] }
@@ -203,6 +208,48 @@ export class Store {
     delete this.sessionSecrets[id]
     delete this.data.commands[id]
     this.save()
+  }
+
+  // --- groups ---
+
+  /** Stored groups plus any only named on a host (e.g. typed in the host editor). */
+  getGroups(): string[] {
+    const names = [...(this.data.groups ?? []), ...this.data.hosts.map((h) => h.group.trim())]
+    return [...new Set(names.filter(Boolean))]
+  }
+
+  private regroup(ids: string[], group: string): GroupsUpdate {
+    const changed = this.data.hosts.filter((h) => ids.includes(h.id))
+    for (const h of changed) h.group = group
+    this.save()
+    return { hosts: changed.map((h) => this.toPublic(h)), groups: this.getGroups() }
+  }
+
+  setGroup(ids: string[], group: string): GroupsUpdate {
+    const name = group.trim()
+    if (name) this.data.groups = [...new Set([...(this.data.groups ?? []), name])]
+    return this.regroup(ids, name)
+  }
+
+  addGroup(name: string): GroupsUpdate {
+    return this.setGroup([], name)
+  }
+
+  /** Renaming onto an existing group's name merges the two. */
+  renameGroup(from: string, to: string): GroupsUpdate {
+    const name = to.trim()
+    if (!name) return { hosts: [], groups: this.getGroups() }
+    this.data.groups = [...new Set((this.data.groups ?? []).map((g) => (g === from ? name : g)).concat(name))]
+    return this.regroup(this.idsInGroup(from), name)
+  }
+
+  removeGroup(name: string): GroupsUpdate {
+    this.data.groups = (this.data.groups ?? []).filter((g) => g !== name)
+    return this.regroup(this.idsInGroup(name), '')
+  }
+
+  private idsInGroup(name: string): string[] {
+    return this.data.hosts.filter((h) => h.group.trim() === name).map((h) => h.id)
   }
 
   touchHost(id: string): void {

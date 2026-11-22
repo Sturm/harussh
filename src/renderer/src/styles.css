@@ -439,7 +439,7 @@ kbd {
 /* ---------- host cards ---------- */
 
 .host-group + .host-group {
-  margin-top: 22px;
+  margin-top: 14px;
 }
 
 .group-title {
@@ -448,7 +448,108 @@ kbd {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: var(--text-faint);
-  margin-bottom: 10px;
+}
+
+.host-group {
+  margin: 0 -8px;
+  padding: 0 8px 4px;
+  border-radius: var(--radius);
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+  transition:
+    outline-color 0.12s,
+    background 0.12s;
+}
+
+.host-group.drop-target {
+  outline-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  margin-bottom: 6px;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  margin-left: -4px;
+  padding: 0 8px 0 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.group-toggle:hover {
+  background: var(--surface);
+}
+
+.group-toggle:hover .group-title {
+  color: var(--text-muted);
+}
+
+.group-chevron {
+  transition: transform 0.15s;
+}
+
+.group-chevron.open {
+  transform: rotate(90deg);
+}
+
+.group-count {
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text-muted);
+}
+
+.group-actions {
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.group-header:hover .group-actions {
+  opacity: 1;
+}
+
+.group-actions .icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.group-empty {
+  margin: 0 0 6px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.group-rename {
+  width: 240px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  outline: none;
+  user-select: text;
 }
 
 .host-grid {
@@ -1002,6 +1103,52 @@ kbd {
 
 .field.port {
   width: 90px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.chip.add {
+  border-style: dashed;
+}
+
+.field .chip-input {
+  width: 150px;
+  height: 28px;
+  padding: 0 10px;
+  border-color: var(--accent);
+  border-radius: 14px;
+  color: var(--text);
+  cursor: text;
 }
 
 .color-row {

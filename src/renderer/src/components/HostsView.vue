@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { Host } from '../../../shared/types'
-import { deleteHost, editHost, newHostDraft, openHost, parseQuickConnect, state } from '../state'
+import {
+  addGroup,
+  deleteHost,
+  editHost,
+  moveHostsToGroup,
+  newHostDraft,
+  openHost,
+  parseQuickConnect,
+  removeGroup,
+  renameGroup,
+  state,
+  toggleGroup
+} from '../state'
 import Icon from './Icon.vue'
 
 const search = ref('')
@@ -17,20 +29,86 @@ onMounted(() => {
   if (state.quickFocus) focusQuick()
 })
 
+// Every group gets a section, empty ones too; Unassigned ('') is always last.
+// While searching, only sections with matches are shown.
 const groups = computed(() => {
   const q = search.value.trim().toLowerCase()
   const filtered = state.hosts.filter((h) =>
     !q ? true : [h.label, h.hostname, h.username, h.group].some((v) => v.toLowerCase().includes(q))
   )
-  const map = new Map<string, Host[]>()
+  const map = new Map<string, Host[]>([...state.groups, ''].map((g) => [g, []]))
   for (const h of [...filtered].sort((a, b) => (a.label || a.hostname).localeCompare(b.label || b.hostname))) {
     const key = h.group.trim()
     map.set(key, [...(map.get(key) ?? []), h])
   }
-  return [...map.entries()].sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+  return [...map.entries()]
+    .filter(([, hosts]) => !q || hosts.length)
+    .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
 })
 
-const hasGroups = computed(() => groups.value.some(([g]) => g !== ''))
+const creating = ref<string | null>(null)
+const createInput = ref<HTMLInputElement>()
+
+function startCreate(): void {
+  creating.value = ''
+  void nextTick(() => createInput.value?.focus())
+}
+
+function commitCreate(): void {
+  const name = creating.value
+  creating.value = null
+  if (name) void addGroup(name)
+}
+
+// While searching every section is open, so matches are never hidden.
+function isCollapsed(group: string): boolean {
+  return !search.value.trim() && state.settings.collapsedGroups.includes(group)
+}
+
+const renaming = ref<{ group: string; value: string } | null>(null)
+const renameInput = ref<HTMLInputElement[]>()
+
+function startRename(group: string): void {
+  renaming.value = { group, value: group }
+  void nextTick(() => renameInput.value?.[0]?.select())
+}
+
+function commitRename(): void {
+  const r = renaming.value
+  renaming.value = null
+  if (r) void renameGroup(r.group, r.value)
+}
+
+// --- drag hosts between groups ---
+
+const DRAG_TYPE = 'application/x-harussh-host'
+const dropTarget = ref<string | null>(null)
+
+function onDragStart(h: Host, e: DragEvent): void {
+  e.dataTransfer?.setData(DRAG_TYPE, h.id)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+
+function onDragOver(group: string, e: DragEvent): void {
+  if (!e.dataTransfer?.types.includes(DRAG_TYPE)) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+  dropTarget.value = group
+}
+
+function onDragLeave(group: string, e: DragEvent): void {
+  const into = e.relatedTarget as Node | null
+  if (dropTarget.value === group && !(e.currentTarget as HTMLElement).contains(into)) dropTarget.value = null
+}
+
+function onDrop(group: string, e: DragEvent): void {
+  dropTarget.value = null
+  const id = e.dataTransfer?.getData(DRAG_TYPE)
+  const host = id && state.hosts.find((h) => h.id === id)
+  if (!host || host.group.trim() === group) return
+  e.preventDefault()
+  void moveHostsToGroup([host.id], group)
+}
 
 function initials(h: Host): string {
   const name = h.label || h.hostname
@@ -68,6 +146,7 @@ function duplicate(h: Host): void {
         <Icon name="search" :size="16" />
         <input v-model="search" placeholder="Search hosts…" />
       </div>
+      <button class="btn" @click="startCreate"><Icon name="folderPlus" :size="16" /> New group</button>
       <button class="btn primary" @click="state.editingHost = newHostDraft()">
         <Icon name="plus" :size="16" /> New host
       </button>
@@ -79,7 +158,22 @@ function duplicate(h: Host): void {
       <kbd>Enter</kbd>
     </form>
 
-    <div v-if="!state.hosts.length" class="empty">
+    <div v-if="creating !== null" class="host-group">
+      <div class="group-header">
+        <input
+          ref="createInput"
+          v-model="creating"
+          class="group-rename"
+          placeholder="Group name"
+          spellcheck="false"
+          @keydown.enter="commitCreate"
+          @keydown.esc="creating = null"
+          @blur="commitCreate"
+        />
+      </div>
+    </div>
+
+    <div v-if="!state.hosts.length && !state.groups.length" class="empty">
       <div class="empty-icon"><Icon name="server" :size="28" /></div>
       <h2>No hosts yet</h2>
       <p>Add your first virtual machine to connect with a single click.</p>
@@ -92,15 +186,60 @@ function duplicate(h: Host): void {
       <p>Nothing matches "{{ search }}".</p>
     </div>
 
-    <div v-for="[group, hosts] in groups" :key="group" class="host-group">
-      <h3 v-if="hasGroups" class="group-title">{{ group || 'Ungrouped' }}</h3>
-      <div class="host-grid">
+    <div
+      v-for="[group, hosts] in groups"
+      :key="group"
+      class="host-group"
+      :class="{ 'drop-target': dropTarget === group }"
+      @dragover="onDragOver(group, $event)"
+      @dragleave="onDragLeave(group, $event)"
+      @drop="onDrop(group, $event)"
+    >
+      <div class="group-header">
+        <input
+          v-if="renaming?.group === group"
+          ref="renameInput"
+          v-model="renaming.value"
+          class="group-rename"
+          spellcheck="false"
+          @keydown.enter="commitRename"
+          @keydown.esc="renaming = null"
+          @blur="commitRename"
+        />
+        <button v-else class="group-toggle" :aria-expanded="!isCollapsed(group)" @click="toggleGroup(group)">
+          <Icon name="chevron" :size="13" class="group-chevron" :class="{ open: !isCollapsed(group) }" />
+          <h3 class="group-title">{{ group || 'Unassigned' }}</h3>
+          <span class="group-count">{{ hosts.length }}</span>
+        </button>
+        <span v-if="renaming?.group !== group" class="group-actions">
+          <button class="icon-btn" title="New host in this group" @click="state.editingHost = newHostDraft({ group })">
+            <Icon name="plus" :size="13" />
+          </button>
+          <button v-if="group" class="icon-btn" title="Rename group" @click="startRename(group)">
+            <Icon name="edit" :size="13" />
+          </button>
+          <button
+            v-if="group"
+            class="icon-btn danger"
+            title="Remove group (keeps its hosts)"
+            @click="removeGroup(group)"
+          >
+            <Icon name="trash" :size="13" />
+          </button>
+        </span>
+      </div>
+      <p v-if="!hosts.length && !isCollapsed(group)" class="group-empty">
+        {{ group ? 'Empty group — drag hosts here or use +.' : 'Every host is in a group.' }}
+      </p>
+      <div v-show="!isCollapsed(group)" class="host-grid">
         <div
           v-for="h in hosts"
           :key="h.id"
           class="host-card"
           tabindex="0"
+          draggable="true"
           :title="`Connect to ${h.username}@${h.hostname}`"
+          @dragstart="onDragStart(h, $event)"
           @click="openHost(h)"
           @keydown.enter="openHost(h)"
         >

@@ -14,6 +14,10 @@ const api: HarusshApi = {
   saveHost: (input) => ipcRenderer.invoke('hosts:save', input),
   deleteHost: (id) => ipcRenderer.invoke('hosts:delete', id),
   readKeyFile: () => ipcRenderer.invoke('hosts:readKeyFile'),
+  setHostGroup: (ids, group) => ipcRenderer.invoke('hosts:setGroup', ids, group),
+  addGroup: (name) => ipcRenderer.invoke('groups:add', name),
+  renameGroup: (from, to) => ipcRenderer.invoke('groups:rename', from, to),
+  removeGroup: (name) => ipcRenderer.invoke('groups:remove', name),
 
   saveSnippet: (snippet) => ipcRenderer.invoke('snippets:save', snippet),
   deleteSnippet: (id) => ipcRenderer.invoke('snippets:delete', id),

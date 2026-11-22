@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { AuthMethod, HostInput } from '../../../shared/types'
 import { api } from '../api'
 import { hostColors, openHost, saveHost, state, type HostDraft } from '../state'
@@ -15,7 +15,23 @@ const error = ref('')
 const saving = ref(false)
 
 const isNew = !props.draft.id
-const groups = computed(() => [...new Set(state.hosts.map((h) => h.group).filter(Boolean))])
+// A group typed via "+ New group" only exists once the host is saved into it.
+const groups = computed(() =>
+  [...new Set([...state.groups, form.group.trim()].filter(Boolean))].sort((a, b) => a.localeCompare(b))
+)
+const newGroup = ref<string | null>(null)
+const newGroupInput = ref<HTMLInputElement>()
+
+function startNewGroup(): void {
+  newGroup.value = ''
+  void nextTick(() => newGroupInput.value?.focus())
+}
+
+function commitNewGroup(): void {
+  const name = newGroup.value?.trim()
+  newGroup.value = null
+  if (name) form.group = name
+}
 const authOptions: { value: AuthMethod; label: string }[] = [
   { value: 'password', label: 'Password' },
   { value: 'key', label: 'SSH key' },
@@ -118,13 +134,38 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
             <span>Label</span>
             <input v-model="form.label" :placeholder="form.hostname || 'e.g. My VM'" />
           </label>
-          <label class="field">
+          <div class="field">
             <span>Group</span>
-            <input v-model="form.group" list="host-groups" placeholder="e.g. Production, Home…" />
-            <datalist id="host-groups">
-              <option v-for="g in groups" :key="g" :value="g" />
-            </datalist>
-          </label>
+            <div class="chip-row">
+              <button type="button" class="chip" :class="{ selected: !form.group.trim() }" @click="form.group = ''">
+                Unassigned
+              </button>
+              <button
+                v-for="g in groups"
+                :key="g"
+                type="button"
+                class="chip"
+                :class="{ selected: form.group.trim() === g }"
+                @click="form.group = g"
+              >
+                <Icon name="folder" :size="12" /> {{ g }}
+              </button>
+              <input
+                v-if="newGroup !== null"
+                ref="newGroupInput"
+                v-model="newGroup"
+                class="chip chip-input"
+                placeholder="Group name"
+                spellcheck="false"
+                @keydown.enter.prevent="commitNewGroup"
+                @keydown.esc.stop="newGroup = null"
+                @blur="commitNewGroup"
+              />
+              <button v-else type="button" class="chip add" @click="startNewGroup">
+                <Icon name="plus" :size="12" /> New group
+              </button>
+            </div>
+          </div>
           <div class="field">
             <span>Color</span>
             <div class="color-row">

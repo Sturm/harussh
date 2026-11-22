@@ -73,6 +73,8 @@ export interface Settings {
   scrollback: number
   copyOnSelect: boolean
   keepAliveInterval: number
+  // Host groups folded on the Hosts screen ('' = Unassigned)
+  collapsedGroups: string[]
 }
 
 // Theme = UI colors + terminal palette. Custom (JSON) themes may set only
@@ -183,6 +185,11 @@ export interface Transfer {
   error?: string | undefined
 }
 
+export interface GroupsUpdate {
+  hosts: Host[]
+  groups: string[]
+}
+
 export interface AppData {
   hosts: Host[]
   snippets: Snippet[]
@@ -191,6 +198,8 @@ export interface AppData {
   themes: ThemeDef[]
   // Commands typed in terminal sessions, per host id, newest first.
   commands: Record<string, CommandEntry[]>
+  // Named host groups, including empty ones. Hosts without a group are "Unassigned".
+  groups: string[]
   // false = no OS secret store; passwords/keys are kept only until the app quits
   secretsEncrypted: boolean
 }
@@ -202,6 +211,12 @@ export interface HarusshApi {
   saveHost(input: HostInput): Promise<Host>
   deleteHost(id: string): Promise<void>
   readKeyFile(): Promise<string | null>
+  // Group changes return the hosts they moved and the new list of groups.
+  setHostGroup(ids: string[], group: string): Promise<GroupsUpdate>
+  addGroup(name: string): Promise<GroupsUpdate>
+  renameGroup(from: string, to: string): Promise<GroupsUpdate>
+  // Hosts in a removed group become Unassigned; none are deleted.
+  removeGroup(name: string): Promise<GroupsUpdate>
 
   saveSnippet(snippet: Omit<Snippet, 'id'> & { id?: string }): Promise<Snippet>
   deleteSnippet(id: string): Promise<void>

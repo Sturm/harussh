@@ -158,11 +158,17 @@ function registerIpc(): void {
     settings: store.getSettings(),
     themes: themes.list(),
     commands: store.getCommands(),
+    groups: store.getGroups(),
     secretsEncrypted: store.secretsEncrypted
   }))
 
   handle('hosts:save', z.tuple([schema.hostInput]), (input) => store.saveHost(input))
   handle('hosts:delete', z.tuple([schema.id]), (id) => store.deleteHost(id))
+  const group = z.string().max(200)
+  handle('hosts:setGroup', z.tuple([z.array(schema.id).max(10_000), group]), (ids, name) => store.setGroup(ids, name))
+  handle('groups:add', z.tuple([group]), (name) => store.addGroup(name))
+  handle('groups:rename', z.tuple([group, group]), (from, to) => store.renameGroup(from, to))
+  handle('groups:remove', z.tuple([group]), (name) => store.removeGroup(name))
   handle('hosts:readKeyFile', noArgs, async () => {
     const res = await dialog.showOpenDialog(win!, {
       title: 'Choose a private key',

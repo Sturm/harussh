@@ -27,6 +27,7 @@ export const iconPaths = {
   file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>',
   folderPlus:
     '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M12 10v6M9 13h6"/>',
+  chevron: '<path d="m9 6 6 6-6 6"/>',
   arrowUp: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   arrowLeft: '<path d="M19 12H5M11 6l-6 6 6 6"/>',

@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import type {
   CommandEntry,
+  GroupsUpdate,
   HistoryEntry,
   Host,
   HostInput,
@@ -43,6 +44,7 @@ export const state = reactive({
   ready: false,
   secretsEncrypted: true,
   hosts: [] as Host[],
+  groups: [] as string[],
   snippets: [] as Snippet[],
   history: [] as HistoryEntry[],
   settings: {} as Settings,
@@ -74,6 +76,7 @@ export const currentTheme = computed(() =>
 export async function loadData(): Promise<void> {
   const data = await api.getData()
   state.hosts = data.hosts
+  state.groups = data.groups
   state.snippets = data.snippets
   state.history = data.history
   state.settings = data.settings
@@ -225,6 +228,8 @@ export async function saveHost(input: HostInput): Promise<Host> {
   else state.hosts.push(host)
   // Update the color of open tabs for this host
   for (const t of state.tabs) if (t.hostId === host.id) t.color = host.color
+  const group = host.group.trim()
+  if (group && !state.groups.includes(group)) state.groups.push(group)
   return host
 }
 
@@ -240,6 +245,55 @@ export function parseQuickConnect(input: string): Partial<HostInput> | null {
   if (!m) return null
   const hostname = m[2]!.replace(/^\[|\]$/g, '')
   return { username: m[1] ?? '', hostname, port: m[3] ? Number(m[3]) : 22, label: hostname }
+}
+
+// --- host groups ('' = Unassigned) ---
+
+function applyGroups(update: GroupsUpdate): void {
+  for (const host of update.hosts) {
+    const idx = state.hosts.findIndex((h) => h.id === host.id)
+    if (idx >= 0) state.hosts[idx] = host
+  }
+  state.groups = update.groups
+}
+
+function setCollapsed(groups: string[]): void {
+  void saveSettings({ collapsedGroups: [...new Set(groups)] })
+}
+
+export async function moveHostsToGroup(ids: string[], group: string): Promise<void> {
+  applyGroups(await api.setHostGroup(ids, group))
+}
+
+export async function addGroup(name: string): Promise<void> {
+  if (name.trim()) applyGroups(await api.addGroup(name))
+}
+
+export function toggleGroup(group: string): void {
+  const collapsed = state.settings.collapsedGroups
+  setCollapsed(collapsed.includes(group) ? collapsed.filter((g) => g !== group) : [...collapsed, group])
+}
+
+/** Renaming onto an existing group's name merges the two. */
+export async function renameGroup(from: string, to: string): Promise<void> {
+  const name = to.trim()
+  if (!name || name === from) return
+  applyGroups(await api.renameGroup(from, name))
+  const collapsed = state.settings.collapsedGroups
+  if (collapsed.includes(from)) setCollapsed([...collapsed.filter((g) => g !== from), name])
+}
+
+/** Removes the group only — its hosts become Unassigned. */
+export async function removeGroup(group: string): Promise<void> {
+  const count = state.hosts.filter((h) => h.group.trim() === group).length
+  const note = !count
+    ? ''
+    : count === 1
+      ? ' Its 1 host moves to Unassigned.'
+      : ` Its ${count} hosts move to Unassigned.`
+  if (!confirm(`Remove group "${group}"?${note}`)) return
+  applyGroups(await api.removeGroup(group))
+  setCollapsed(state.settings.collapsedGroups.filter((g) => g !== group))
 }
 
 // --- snippets ---
