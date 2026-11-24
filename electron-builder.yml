@@ -14,18 +14,35 @@ files:
 # ssh2 works without its optional native addons (cpu-features / sshcrypto),
 # so nothing is rebuilt for Electron and no compiler toolchain is needed.
 npmRebuild: false
+# Releases (and auto-updates) come from GitHub Releases. CI publishes them
+# when a `v*` tag is pushed — see .github/workflows/release.yml.
+publish:
+  provider: github
+  owner: Sturm
+  repo: harussh
 mac:
   icon: build/icon-mac.png
   category: public.app-category.developer-tools
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  # zip is what the auto-updater downloads; dmg is for first installs.
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
 win:
   target:
     - nsis
     - portable
+# File names without spaces — GitHub would rename them and break latest.yml.
+nsis:
+  artifactName: ${productName}-Setup-${version}.${ext}
+portable:
+  artifactName: ${productName}-Portable-${version}.${ext}
 linux:
   category: Development
+  # .deb needs a maintainer; package.json's author has no email.
+  maintainer: Hubert Rządziński
   target:
     - AppImage
     - deb

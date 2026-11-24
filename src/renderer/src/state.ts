@@ -11,7 +11,8 @@ import type {
   Settings,
   Snippet,
   ThemeDef,
-  Transfer
+  Transfer,
+  UpdateStatus
 } from '../../shared/types'
 import { api } from './api'
 import { imageFileToIcon } from './hostIcons'
@@ -72,7 +73,8 @@ export const state = reactive({
   sidePanelTab: initialPanelTab,
   // Bumped to put keyboard focus back into the active terminal.
   termFocus: 0,
-  searchFocus: 0
+  searchFocus: 0,
+  update: null as UpdateStatus | null
 })
 
 export const allThemes = computed(() => [...builtInThemes, ...state.customThemes])
@@ -91,7 +93,14 @@ export async function loadData(): Promise<void> {
   state.customThemes = data.themes
   state.commands = data.commands
   state.secretsEncrypted = data.secretsEncrypted
+  state.update = await api.getUpdateStatus()
   state.ready = true
+}
+
+api.onUpdateStatus((status) => (state.update = status))
+
+export async function checkForUpdates(): Promise<void> {
+  state.update = await api.checkForUpdates()
 }
 
 api.onThemesChanged(() => {

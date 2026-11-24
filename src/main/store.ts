@@ -64,6 +64,7 @@ export const defaultSettings: Settings = {
   scrollback: 10000,
   copyOnSelect: false,
   keepAliveInterval: 15,
+  autoUpdate: true,
   collapsedGroups: []
 }
 

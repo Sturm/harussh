@@ -22,6 +22,7 @@ import { SftpManager } from './sftp'
 import { SshManager } from './ssh'
 import { Store } from './store'
 import { ThemeStore } from './themes'
+import { Updater } from './updater'
 
 const isMac = process.platform === 'darwin'
 const TABBAR_HEIGHT = 44
@@ -31,6 +32,7 @@ let store: Store
 let themes: ThemeStore
 let ssh: SshManager
 let sftp: SftpManager
+let updater: Updater
 
 function send(channel: string, ...args: unknown[]): void {
   if (win && !win.isDestroyed()) win.webContents.send(channel, ...args)
@@ -247,6 +249,10 @@ function registerIpc(): void {
   )
   handle('fs:delete', z.tuple([fileSide, tabId, fsPaths]), (side, tab, paths) => sftp.delete(side, tab, paths))
 
+  handle('updates:get', noArgs, () => updater.get())
+  handle('updates:check', noArgs, () => updater.check())
+  on('updates:install', noArgs, () => updater.install())
+
   handle('clipboard:read', noArgs, () => clipboard.readText())
   on('clipboard:write', z.tuple([z.string().max(16 * 1024 * 1024)]), (text) => {
     void clipboard.writeText(text)
@@ -282,6 +288,10 @@ if (!app.requestSingleInstanceLock()) {
     })
     themes.watch(() => send('themes:changed'))
     powerMonitor.on('resume', () => ssh.onResume())
+    updater = new Updater(
+      (status) => send('updates:status', status),
+      () => store.getSettings().autoUpdate
+    )
 
     if (app.isPackaged) {
       session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -313,5 +323,6 @@ if (!app.requestSingleInstanceLock()) {
     ssh?.closeAll()
     sftp?.closeAll()
     themes?.dispose()
+    updater?.dispose()
   })
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { CursorStyle } from '../../../shared/types'
-import { isMac, modLabel } from '../api'
-import { saveSettings, state } from '../state'
+import { api, isMac, modLabel } from '../api'
+import { checkForUpdates, saveSettings, state } from '../state'
 
 const fontSuggestions = [
   'Menlo, Monaco, monospace',
@@ -18,6 +19,28 @@ function num(e: Event, min: number, max: number): number {
   const v = Number((e.target as HTMLInputElement).value)
   return Math.min(max, Math.max(min, Number.isFinite(v) ? v : min))
 }
+
+const updateText = computed(() => {
+  const u = state.update
+  switch (u?.state) {
+    case 'checking':
+      return 'Checking for updates…'
+    case 'latest':
+      return 'You have the latest version.'
+    case 'available':
+      return `Version ${u.version} is available — download it from GitHub.`
+    case 'downloading':
+      return `Downloading version ${u.version}… ${u.percent ?? 0}%`
+    case 'ready':
+      return `Version ${u.version} is ready — it installs when you restart or quit the app.`
+    case 'error':
+      return `Couldn't check for updates: ${u.message}`
+    case 'unsupported':
+      return u.message
+    default:
+      return ''
+  }
+})
 
 const shortcuts = [
   [`${modLabel}T`, 'New connection (host list)'],
@@ -125,6 +148,44 @@ const shortcuts = [
           :value="state.settings.keepAliveInterval"
           @change="saveSettings({ keepAliveInterval: num($event, 5, 300) })"
         />
+      </label>
+    </div>
+
+    <div class="settings-section">
+      <h3>Updates</h3>
+      <div class="update-row">
+        <span>harussh {{ state.update?.current }}</span>
+        <button
+          v-if="state.update?.state === 'ready' || state.update?.state === 'available'"
+          class="btn small primary"
+          @click="api.installUpdate()"
+        >
+          {{ state.update.state === 'ready' ? 'Restart and update' : 'Download' }}
+        </button>
+        <button
+          v-else
+          class="btn small"
+          :disabled="
+            state.update?.state === 'unsupported' ||
+            state.update?.state === 'checking' ||
+            state.update?.state === 'downloading'
+          "
+          @click="checkForUpdates()"
+        >
+          Check for updates
+        </button>
+      </div>
+      <p v-if="updateText" class="hint" :class="{ warn: state.update?.state === 'error' }">{{ updateText }}</p>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          :checked="state.settings.autoUpdate"
+          @change="saveSettings({ autoUpdate: !state.settings.autoUpdate })"
+        />
+        <span class="toggle-ui" />
+        <span>{{
+          state.update?.canInstall ? 'Check for and download updates automatically' : 'Check for updates automatically'
+        }}</span>
       </label>
     </div>
 

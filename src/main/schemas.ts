@@ -44,6 +44,7 @@ export const settingsPatch: z.ZodType<Partial<Settings>> = z.strictObject({
   scrollback: z.number().min(0).max(1_000_000).exactOptional(),
   copyOnSelect: z.boolean().exactOptional(),
   keepAliveInterval: z.number().min(0).max(3600).exactOptional(),
+  autoUpdate: z.boolean().exactOptional(),
   collapsedGroups: z.array(text(200)).max(1000).exactOptional()
 })
 

@@ -66,6 +66,11 @@ const api: HarusshApi = {
   sftpCancel: (transferId) => ipcRenderer.send('sftp:cancel', transferId),
   pathForFile: (file) => webUtils.getPathForFile(file),
 
+  getUpdateStatus: () => ipcRenderer.invoke('updates:get'),
+  checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  installUpdate: () => ipcRenderer.send('updates:install'),
+  onUpdateStatus: (cb) => subscribe('updates:status', cb),
+
   clipboardRead: () => ipcRenderer.invoke('clipboard:read'),
   clipboardWrite: (text) => ipcRenderer.send('clipboard:write', text),
   openExternal: (url) => ipcRenderer.send('app:openExternal', url)

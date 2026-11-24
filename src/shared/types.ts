@@ -84,6 +84,8 @@ export interface Settings {
   scrollback: number
   copyOnSelect: boolean
   keepAliveInterval: number
+  // Check for new versions on start and every few hours (and download them where supported).
+  autoUpdate: boolean
   // Host groups folded on the Hosts screen ('' = Unassigned)
   collapsedGroups: string[]
 }
@@ -216,6 +218,23 @@ export interface GroupsUpdate {
   groups: string[]
 }
 
+export type UpdateState =
+  'idle' | 'checking' | 'latest' | 'available' | 'downloading' | 'ready' | 'error' | 'unsupported'
+
+export interface UpdateStatus {
+  state: UpdateState
+  // Version of the running app.
+  current: string
+  // Newest version on GitHub, once known.
+  version?: string
+  // Download progress 0–100 while `downloading`.
+  percent?: number
+  message?: string
+  // false = this build can't update itself (macOS unsigned, portable .exe, .deb…):
+  // the app only tells about new versions and links to the release page.
+  canInstall: boolean
+}
+
 export interface AppData {
   hosts: Host[]
   snippets: Snippet[]
@@ -294,6 +313,12 @@ export interface HarusshApi {
   sftpDownload(tabId: string, remotePaths: string[], localDir: string): void
   sftpCancel(transferId: string): void
   pathForFile(file: File): string
+
+  getUpdateStatus(): Promise<UpdateStatus>
+  checkForUpdates(): Promise<UpdateStatus>
+  // Quits and installs a downloaded update (`ready`); otherwise opens the release page.
+  installUpdate(): void
+  onUpdateStatus(cb: (status: UpdateStatus) => void): () => void
 
   clipboardRead(): Promise<string>
   clipboardWrite(text: string): void
