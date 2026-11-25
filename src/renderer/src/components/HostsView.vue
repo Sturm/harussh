@@ -202,7 +202,7 @@ function duplicate(h: Host): void {
         </span>
       </div>
       <p v-if="!hosts.length && !isCollapsed(group)" class="group-empty">
-        {{ group ? 'Empty group — drag hosts here or use +.' : 'Every host is in a group.' }}
+        {{ group ? 'Empty group. Drag hosts here or use +.' : 'Every host is in a group.' }}
       </p>
       <div v-show="!isCollapsed(group)" class="host-grid">
         <div

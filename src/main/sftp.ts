@@ -185,7 +185,7 @@ export class SftpManager {
         this.setStatus(s, {
           status: 'error',
           code: 'auth',
-          message: 'Authentication failed — check the username, password or key.'
+          message: 'Authentication failed. Check the username, password or key.'
         })
       } else if (s.status === 'connected') {
         this.setStatus(s, { status: 'disconnected', message: lastError ?? 'Connection closed.' })
@@ -405,7 +405,7 @@ export class SftpManager {
     void this.drain(s)
   }
 
-  // One transfer at a time per tab — parallel transfers over a single
+  // One transfer at a time per tab: parallel transfers over a single
   // connection don't finish any sooner, and a queue is easier to follow.
   private async drain(s: Session): Promise<void> {
     if (s.running) return

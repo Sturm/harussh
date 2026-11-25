@@ -102,7 +102,7 @@ const ansi = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'] as const
       <h3>Custom themes</h3>
       <p>
         A theme is a <code>.json</code> file in the themes folder. Edits show up instantly, no restart needed. Only set
-        the keys you want to change — the rest comes from the base theme (<code>dark</code> or <code>light</code>). The
+        the keys you want to change; the rest comes from the base theme (<code>dark</code> or <code>light</code>). The
         easiest start: click <Icon name="copy" :size="12" /> on a theme and edit the copy.
       </p>
       <pre class="mono">

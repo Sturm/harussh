@@ -78,7 +78,7 @@ function decrypt(value: string): string | undefined {
     // Legacy: older versions stored secrets as plain base64 when no keyring was available.
     if (value.startsWith('b64:')) return Buffer.from(value.slice(4), 'base64').toString('utf8')
   } catch {
-    // e.g. data copied from another machine — the OS key doesn't match
+    // e.g. data copied from another machine, so the OS key doesn't match
   }
   return undefined
 }
@@ -100,7 +100,7 @@ export class Store {
   private file: string
   private data: DataFile
   // Without an OS secret store (e.g. Linux without a keyring) secrets are never
-  // written to disk — they live in memory until the app quits.
+  // written to disk; they live in memory until the app quits.
   readonly secretsEncrypted = safeStorage.isEncryptionAvailable()
   private sessionSecrets: Record<string, Secrets> = {}
 

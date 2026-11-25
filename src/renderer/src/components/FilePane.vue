@@ -346,7 +346,7 @@ defineExpose({ getPath: () => path.value, refresh, has: (name: string) => entrie
             <Icon v-if="entry.link" name="link" :size="12" class="file-link" />
           </template>
         </span>
-        <span class="file-size">{{ entry.type === 'dir' ? '—' : formatSize(entry.size) }}</span>
+        <span class="file-size">{{ entry.type === 'dir' ? '-' : formatSize(entry.size) }}</span>
         <span class="file-date">{{ formatDate(entry.mtime) }}</span>
       </div>
       <p v-if="ready && !loading && !visible.length && !editing" class="hint center">Empty folder</p>

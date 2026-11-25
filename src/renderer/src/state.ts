@@ -156,7 +156,7 @@ export function newConnection(): void {
 
 export function openHost(host: Host, kind: TabKind = 'ssh'): void {
   const same = state.tabs.filter((t) => t.hostId === host.id && t.kind === kind).length
-  const label = (host.label || host.hostname) + (kind === 'sftp' ? ' — SFTP' : '')
+  const label = (host.label || host.hostname) + (kind === 'sftp' ? ' (SFTP)' : '')
   const tab: Tab = {
     id: crypto.randomUUID(),
     kind,
@@ -305,7 +305,7 @@ export async function renameGroup(from: string, to: string): Promise<void> {
   if (collapsed.includes(from)) setCollapsed([...collapsed.filter((g) => g !== from), name])
 }
 
-/** Removes the group only — its hosts become Unassigned. */
+/** Removes the group only; its hosts become Unassigned. */
 export async function removeGroup(group: string): Promise<void> {
   const count = state.hosts.filter((h) => h.group.trim() === group).length
   const note = !count

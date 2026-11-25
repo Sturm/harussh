@@ -76,7 +76,7 @@ export class SshManager {
     for (const id of [...this.sessions.keys()]) this.close(id)
   }
 
-  /** Manual "Reconnect" — immediately, with the attempt counter reset. */
+  /** Manual "Reconnect": immediately, with the attempt counter reset. */
   reconnect(tabId: string): void {
     const s = this.sessions.get(tabId)
     if (!s) return
@@ -100,7 +100,7 @@ export class SshManager {
     this.reconnect(tabId)
   }
 
-  /** After the computer wakes up, don't wait for the backoff — retry now. */
+  /** After the computer wakes up, don't wait for the backoff, retry now. */
   onResume(): void {
     for (const s of this.sessions.values()) {
       if (s.status === 'reconnecting' && s.timer) this.reconnect(s.tabId)
@@ -206,7 +206,7 @@ export class SshManager {
         this.setStatus(s, {
           status: 'error',
           code: 'auth',
-          message: 'Authentication failed — check the username, password or key.'
+          message: 'Authentication failed. Check the username, password or key.'
         })
         return
       }
@@ -257,7 +257,7 @@ export class SshManager {
     }
     const delay = Math.min(30_000, 1000 * 2 ** (s.attempts - 1))
     const reason = s.lastError ? ` (${s.lastError})` : ''
-    this.info(s, `Connection lost${reason} — retrying in ${Math.round(delay / 1000)}s`, 'warn')
+    this.info(s, `Connection lost${reason}, retrying in ${Math.round(delay / 1000)}s`, 'warn')
     this.setStatus(s, {
       status: 'reconnecting',
       message: `Connection lost. Attempt ${s.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${Math.round(delay / 1000)}s…`
@@ -273,7 +273,7 @@ export class SshManager {
     this.events.status(s.tabId, event)
   }
 
-  // Batch output into one IPC message per event-loop tick — with heavy output
+  // Batch output into one IPC message per event-loop tick: with heavy output
   // (e.g. cat on a big file) this is far cheaper than one IPC per packet.
   private pushData(s: Session, chunk: Buffer): void {
     s.outBuffer += s.decoder.write(chunk)

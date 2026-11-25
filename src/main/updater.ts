@@ -62,7 +62,7 @@ export class Updater {
 
   async check(): Promise<UpdateStatus> {
     if (!app.isPackaged) return this.status
-    // Already found or downloading — nothing new to learn.
+    // Already found or downloading, nothing new to learn.
     if (['checking', 'downloading', 'ready'].includes(this.status.state)) return this.status
     try {
       await autoUpdater.checkForUpdates()
@@ -103,6 +103,6 @@ export class Updater {
 function shortError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
   if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ECONNRESET|net::ERR_/.test(msg)) return 'No connection to GitHub.'
-  // electron-updater errors can carry whole HTTP responses — keep the first line.
+  // electron-updater errors can carry whole HTTP responses, so keep the first line.
   return msg.split('\n')[0]!.slice(0, 200)
 }

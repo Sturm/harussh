@@ -133,7 +133,7 @@ function editThisHost(): void {
               <span class="host-sub">{{ h.username }}@{{ h.hostname }}</span>
             </span>
           </button>
-          <p v-if="!state.hosts.length" class="hint center">No hosts yet — add one under Hosts.</p>
+          <p v-if="!state.hosts.length" class="hint center">No hosts yet. Add one under Hosts.</p>
           <p v-else-if="!pickable.length" class="hint center">Nothing matches "{{ search }}".</p>
         </div>
       </section>

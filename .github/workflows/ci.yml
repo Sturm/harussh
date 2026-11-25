@@ -18,7 +18,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Runtime dependencies ship inside the app — any known vulnerability fails the build.
+      # Runtime dependencies ship inside the app, so any known vulnerability fails the build.
       - run: npm audit --omit=dev --audit-level=low
       # Build tooling only: fail on high/critical.
       - run: npm audit --audit-level=high

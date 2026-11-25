@@ -16,7 +16,7 @@ export interface Host {
   autoReconnect: boolean
   createdAt: number
   lastConnectedAt?: number | undefined
-  // Secrets never reach the renderer — only whether they are stored.
+  // Secrets never reach the renderer, only whether they are stored.
   hasPassword: boolean
   hasKey: boolean
   hasPassphrase: boolean
@@ -91,7 +91,7 @@ export interface Settings {
 }
 
 // Theme = UI colors + terminal palette. Custom (JSON) themes may set only
-// some keys — the rest comes from the base theme (dark/light).
+// some keys; the rest comes from the base theme (dark/light).
 export interface ThemeUi {
   bg: string
   sidebar: string

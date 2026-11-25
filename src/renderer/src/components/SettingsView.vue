@@ -28,11 +28,11 @@ const updateText = computed(() => {
     case 'latest':
       return 'You have the latest version.'
     case 'available':
-      return `Version ${u.version} is available — download it from GitHub.`
+      return `Version ${u.version} is available. Download it from GitHub.`
     case 'downloading':
       return `Downloading version ${u.version}… ${u.percent ?? 0}%`
     case 'ready':
-      return `Version ${u.version} is ready — it installs when you restart or quit the app.`
+      return `Version ${u.version} is ready. It installs when you restart or quit the app.`
     case 'error':
       return `Couldn't check for updates: ${u.message}`
     case 'unsupported':

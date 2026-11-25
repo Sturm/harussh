@@ -50,7 +50,7 @@ async function clear(): Promise<void> {
           <div class="row-sub">
             {{ e.target }}
             <template v-if="e.error">
-              — <span class="text-danger">{{ e.error }}</span></template
+              · <span class="text-danger">{{ e.error }}</span></template
             >
           </div>
         </div>

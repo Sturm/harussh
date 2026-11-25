@@ -4,8 +4,8 @@
 // tracked as long as they are plain typing; once arrows, Tab completion or other
 // escape sequences are used, the command is read back from the screen instead,
 // taking the text after the prompt. Nothing is recorded in full-screen programs
-// (vim, less, htop) or when the typed text never appeared on screen — that is a
-// password prompt with echo turned off.
+// (vim, less, htop) or when the typed text never appeared on screen (that is a
+// password prompt with echo turned off).
 import type { Terminal } from '@xterm/xterm'
 
 const PASTE_START = '\x1b[200~'

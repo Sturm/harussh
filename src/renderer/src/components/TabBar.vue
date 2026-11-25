@@ -18,7 +18,7 @@ const activeHost = computed(() => state.hosts.find((h) => h.id === activeTab.val
     <button
       class="tab home-tab"
       :class="{ active: state.active === SFTP_TAB }"
-      :title="sftpHost ? `SFTP — ${sftpHost.label || sftpHost.hostname}` : 'SFTP'"
+      :title="sftpHost ? `SFTP: ${sftpHost.label || sftpHost.hostname}` : 'SFTP'"
       @click="openSftpTab"
     >
       <span v-if="state.sftpTab?.hostId" class="status-dot" :class="state.sftpTab.status" />

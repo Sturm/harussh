@@ -7,7 +7,7 @@ directories:
 # - libraries used only by the bundled code (vue, @xterm/*) belong in
 #   devDependencies and are not shipped in node_modules;
 # - `dependencies` (ssh2, zod) are external to the bundle and electron-builder
-#   copies them into the app — keep this list minimal.
+#   copies them into the app, so keep this list minimal.
 files:
   - out/**/*
   - package.json
@@ -15,7 +15,7 @@ files:
 # so nothing is rebuilt for Electron and no compiler toolchain is needed.
 npmRebuild: false
 # Releases (and auto-updates) come from GitHub Releases. CI publishes them
-# when a `v*` tag is pushed — see .github/workflows/release.yml.
+# when a `v*` tag is pushed (see .github/workflows/release.yml).
 publish:
   provider: github
   owner: Sturm
@@ -34,7 +34,7 @@ win:
   target:
     - nsis
     - portable
-# File names without spaces — GitHub would rename them and break latest.yml.
+# File names without spaces, since GitHub would rename them and break latest.yml.
 nsis:
   artifactName: ${productName}-Setup-${version}.${ext}
 portable:

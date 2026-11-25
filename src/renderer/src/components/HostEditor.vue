@@ -208,7 +208,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
                 type="button"
                 class="icon-tile auto"
                 :class="{ selected: !form.icon }"
-                :title="`Auto — picked from the username and name (now: ${autoLabel})`"
+                :title="`Auto: picked from the username and name (now: ${autoLabel})`"
                 @click="form.icon = ''"
               >
                 <HostIcon :host="withIcon('')" :size="30" />
@@ -317,7 +317,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
               v-model="secrets.password"
               type="password"
               autocomplete="new-password"
-              :placeholder="form.hasPassword && !cleared.password ? '•••••••• saved — type to change' : ''"
+              :placeholder="form.hasPassword && !cleared.password ? '•••••••• saved, type to change' : ''"
             />
           </label>
 
@@ -341,7 +341,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
                 spellcheck="false"
                 :placeholder="
                   form.hasKey && !cleared.privateKey
-                    ? 'Key saved — paste a new one to change it'
+                    ? 'Key saved, paste a new one to change it'
                     : '-----BEGIN OPENSSH PRIVATE KEY-----'
                 "
               />
@@ -371,7 +371,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           </template>
 
           <p v-if="form.auth === 'agent'" class="hint">
-            Uses your running SSH agent (ssh-agent / 1Password / OpenSSH Agent on Windows) — no keys are stored in the
+            Uses your running SSH agent (ssh-agent / 1Password / OpenSSH Agent on Windows). No keys are stored in the
             app.
           </p>
           <p v-if="state.secretsEncrypted" class="hint">

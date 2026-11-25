@@ -28,7 +28,7 @@ npm run dev
 
 Installed apps check [GitHub Releases](https://github.com/Sturm/harussh/releases) on start and every 6 hours (Settings → Updates).
 On Windows (installer) and Linux (AppImage) the update downloads in the background and installs on restart.
-On macOS, the portable `.exe` and the `.deb`, the app shows that a new version is out and links to its download page —
+On macOS, the portable `.exe` and the `.deb`, the app shows that a new version is out and links to its download page:
 macOS only installs updates by itself for code-signed apps.
 
 ## Releasing
@@ -36,7 +36,7 @@ macOS only installs updates by itself for code-signed apps.
 The version lives in `package.json` and is tagged in git as `vX.Y.Z`:
 
 ```bash
-npm version patch   # or minor / major — bumps package.json, commits and tags
+npm version patch   # or minor / major: bumps package.json, commits and tags
 ```
 
 ```bash

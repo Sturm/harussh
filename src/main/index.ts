@@ -110,7 +110,7 @@ function openExternal(url: string): void {
 
 function buildMenu(): void {
   if (!isMac) {
-    // No menu on Windows/Linux — default accelerators (Ctrl+R, Ctrl+W…) would
+    // No menu on Windows/Linux: default accelerators (Ctrl+R, Ctrl+W…) would
     // steal keys the remote shell needs.
     Menu.setApplicationMenu(null)
     return

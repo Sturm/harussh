@@ -137,7 +137,7 @@ export class ThemeStore {
         timer = setTimeout(onChange, 200)
       })
     } catch {
-      // fs.watch unsupported — themes refresh after a restart
+      // fs.watch unsupported, so themes refresh after a restart
     }
   }
 

@@ -20,7 +20,7 @@ let resizeObserver: ResizeObserver
 let offData: () => void
 
 function safeFit(): void {
-  // A hidden tab has zero size — fitting would send 1×1 and garble the remote session.
+  // A hidden tab has zero size; fitting would send 1×1 and garble the remote session.
   if (el.value && el.value.offsetWidth > 0 && el.value.offsetHeight > 0) fit.fit()
 }
 
@@ -69,7 +69,7 @@ onMounted(() => {
     webgl.onContextLoss(() => webgl.dispose())
     term.loadAddon(webgl)
   } catch {
-    // no WebGL — xterm falls back to the DOM renderer
+    // no WebGL, so xterm falls back to the DOM renderer
   }
 
   term.attachCustomKeyEventHandler((e) => {
