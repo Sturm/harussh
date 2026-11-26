@@ -6,6 +6,7 @@ import type {
   HistoryEntry,
   Host,
   HostInput,
+  PromptRequest,
   SessionStatus,
   SessionStatusEvent,
   Settings,
@@ -74,7 +75,9 @@ export const state = reactive({
   // Bumped to put keyboard focus back into the active terminal.
   termFocus: 0,
   searchFocus: 0,
-  update: null as UpdateStatus | null
+  update: null as UpdateStatus | null,
+  // Questions from connections in progress (host keys, 2FA), oldest first.
+  prompts: [] as PromptRequest[]
 })
 
 export const allThemes = computed(() => [...builtInThemes, ...state.customThemes])
@@ -135,6 +138,15 @@ api.onSftpTransfer((transfer) => {
   if (idx >= 0) state.transfers[idx] = transfer
   else state.transfers.push(transfer)
 })
+
+api.onPrompt((request) => state.prompts.push(request))
+api.onPromptHide((id) => (state.prompts = state.prompts.filter((p) => p.id !== id)))
+
+export function answerPrompt(id: string, answers: string[] | null): void {
+  state.prompts = state.prompts.filter((p) => p.id !== id)
+  api.answerPrompt(id, answers)
+  state.termFocus++
+}
 
 export async function refreshHistory(): Promise<void> {
   state.history = await api.getHistory()
@@ -227,6 +239,7 @@ export function newHostDraft(partial: Partial<HostInput> = {}): HostDraft {
     color: hostColors[state.hosts.length % hostColors.length]!,
     icon: '',
     autoReconnect: true,
+    jumpHostId: '',
     hasPassword: false,
     hasKey: false,
     hasPassphrase: false,
@@ -266,7 +279,9 @@ export async function removeCustomIcon(id: string): Promise<void> {
 export async function deleteHost(host: Host): Promise<void> {
   if (!confirm(`Delete host "${host.label || host.hostname}"? Its saved password and key will be removed too.`)) return
   await api.deleteHost(host.id)
-  state.hosts = state.hosts.filter((h) => h.id !== host.id)
+  state.hosts = state.hosts
+    .filter((h) => h.id !== host.id)
+    .map((h) => (h.jumpHostId === host.id ? { ...h, jumpHostId: '' } : h))
 }
 
 // --- host groups ('' = Unassigned) ---

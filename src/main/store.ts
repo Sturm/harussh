@@ -13,8 +13,11 @@ import type {
   Snippet
 } from '../shared/types'
 
-// `icon` is missing in hosts saved before icons existed.
-type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase' | 'icon'> & { icon?: string }
+// `icon` and `jumpHostId` are missing in hosts saved before they existed.
+export type StoredHost = Omit<Host, 'hasPassword' | 'hasKey' | 'hasPassphrase' | 'icon' | 'jumpHostId'> & {
+  icon?: string
+  jumpHostId?: string
+}
 type SecretField = 'password' | 'privateKey' | 'passphrase'
 export type Secrets = Partial<Record<SecretField, string>>
 
@@ -184,6 +187,7 @@ export class Store {
     return {
       ...h,
       icon: h.icon ?? '',
+      jumpHostId: h.jumpHostId ?? '',
       hasPassword: !!s.password,
       hasKey: !!s.privateKey,
       hasPassphrase: !!s.passphrase
@@ -218,6 +222,8 @@ export class Store {
     const host: StoredHost = {
       ...fields,
       id,
+      // A host can't be its own jump host.
+      jumpHostId: fields.jumpHostId === id ? '' : fields.jumpHostId,
       port: Number(fields.port) || 22,
       createdAt: existing?.createdAt ?? Date.now(),
       lastConnectedAt: existing?.lastConnectedAt
@@ -274,6 +280,8 @@ export class Store {
     delete this.data.secrets[id]
     delete this.sessionSecrets[id]
     delete this.data.commands[id]
+    // Hosts that jumped through it connect directly again.
+    for (const h of this.data.hosts) if (h.jumpHostId === id) h.jumpHostId = ''
     this.save()
   }
 

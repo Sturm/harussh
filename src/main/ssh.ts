@@ -1,7 +1,8 @@
-import { Client, type ClientChannel, type SyncHostVerifier } from 'ssh2'
+import type { Client, ClientChannel } from 'ssh2'
 import { StringDecoder } from 'node:string_decoder'
 import type { SessionStatus, SessionStatusEvent } from '../shared/types'
-import { answerKeyboardInteractive, connectConfig, fingerprint, knownHostKey } from './connection'
+import { dial, hostLabel } from './connection'
+import type { Prompter } from './prompts'
 import type { Store } from './store'
 
 const MAX_RECONNECT_ATTEMPTS = 10
@@ -23,7 +24,7 @@ class Session {
   timer: NodeJS.Timeout | null = null
   historyId: string | null = null
   lastError: string | null = null
-  pendingFingerprint: string | null = null
+  pendingHostKey: { knownKey: string; fingerprint: string } | null = null
   outBuffer = ''
   flushScheduled = false
 
@@ -40,6 +41,7 @@ export class SshManager {
 
   constructor(
     private store: Store,
+    private prompter: Prompter,
     private events: SshEvents
   ) {}
 
@@ -93,10 +95,9 @@ export class SshManager {
 
   trustHostKey(tabId: string): void {
     const s = this.sessions.get(tabId)
-    const host = s && this.store.getHost(s.hostId)
-    if (!s || !host || !s.pendingFingerprint) return
-    this.store.setKnownHost(knownHostKey(host), s.pendingFingerprint)
-    s.pendingFingerprint = null
+    if (!s?.pendingHostKey) return
+    this.store.setKnownHost(s.pendingHostKey.knownKey, s.pendingHostKey.fingerprint)
+    s.pendingHostKey = null
     this.reconnect(tabId)
   }
 
@@ -113,10 +114,7 @@ export class SshManager {
       this.setStatus(s, { status: 'error', message: 'This host has been deleted.' })
       return
     }
-    const secrets = this.store.getSecrets(host.id)
-    const settings = this.store.getSettings()
     const target = `${host.username}@${host.hostname}:${host.port}`
-    const knownKey = knownHostKey(host)
 
     this.setStatus(s, {
       status: s.everConnected ? 'reconnecting' : 'connecting',
@@ -124,29 +122,13 @@ export class SshManager {
     })
     this.info(s, `Connecting to ${target}…`, 'info')
 
-    const client = new Client()
-    s.client = client
     s.decoder = new StringDecoder('utf8')
     s.lastError = null
-    let authFailed = false
-    let hostKeyMismatch = false
-
-    const hostVerifier: SyncHostVerifier = (key) => {
-      const fp = fingerprint(key)
-      const known = this.store.getKnownHost(knownKey)
-      if (!known) {
-        this.store.setKnownHost(knownKey, fp)
-        this.info(s, `Saved host key ${fp}`, 'info')
-        return true
-      }
-      if (known === fp) return true
-      hostKeyMismatch = true
-      s.pendingFingerprint = fp
-      return false
-    }
-
-    const config = connectConfig(host, secrets, settings, hostVerifier)
-    answerKeyboardInteractive(client, secrets)
+    const { client, failure } = dial(
+      { store: this.store, prompter: this.prompter, tabId: s.tabId, info: (text, kind) => this.info(s, text, kind) },
+      host
+    )
+    s.client = client
 
     client.on('ready', () => {
       client.shell({ term: 'xterm-256color', cols: s.cols, rows: s.rows }, (err, stream) => {
@@ -166,7 +148,7 @@ export class SshManager {
           this.store.touchHost(host.id)
           s.historyId = this.store.addHistory({
             hostId: host.id,
-            label: host.label || host.hostname,
+            label: hostLabel(host),
             target,
             connectedAt: Date.now(),
             ok: true
@@ -181,33 +163,23 @@ export class SshManager {
       })
     })
 
-    client.on('error', (err: Error & { level?: string }) => {
-      if (err.level === 'client-authentication') authFailed = true
-      s.lastError = err.message
-    })
-
     client.on('close', () => {
       if (s.client !== client) return // stale connection after a manual reconnect
       s.client = null
       s.stream = null
       if (s.closedByUser) return
+      const f = failure()
+      s.lastError = s.lastError ?? f?.message ?? null
 
-      if (hostKeyMismatch) {
-        this.info(s, `WARNING: host key for ${knownKey} has changed! New: ${s.pendingFingerprint}`, 'error')
-        this.setStatus(s, {
-          status: 'error',
-          code: 'hostkey',
-          message: 'Host key changed. If you reinstalled the server, trust the new key.'
-        })
+      if (f?.code === 'hostkey') {
+        s.pendingHostKey = { knownKey: f.knownKey, fingerprint: f.fingerprint }
+        this.info(s, `WARNING: host key for ${f.knownKey} has changed! New: ${f.fingerprint}`, 'error')
+        this.setStatus(s, { status: 'error', code: 'hostkey', message: f.message })
         return
       }
-      if (authFailed) {
+      if (f?.code === 'auth' && !s.everConnected) {
         this.info(s, 'Authentication failed', 'error')
-        this.setStatus(s, {
-          status: 'error',
-          code: 'auth',
-          message: 'Authentication failed. Check the username, password or key.'
-        })
+        this.setStatus(s, { status: 'error', code: 'auth', message: f.message })
         return
       }
       if (!s.everConnected) {
@@ -215,7 +187,7 @@ export class SshManager {
         this.info(s, message, 'error')
         this.store.addHistory({
           hostId: host.id,
-          label: host.label || host.hostname,
+          label: hostLabel(host),
           target,
           connectedAt: Date.now(),
           ok: false,
@@ -235,16 +207,6 @@ export class SshManager {
       }
       this.scheduleReconnect(s)
     })
-
-    try {
-      client.connect(config)
-    } catch (err) {
-      // e.g. invalid private key format
-      const message = err instanceof Error ? err.message : String(err)
-      s.client = null
-      this.info(s, message, 'error')
-      this.setStatus(s, { status: 'error', message })
-    }
   }
 
   private scheduleReconnect(s: Session): void {

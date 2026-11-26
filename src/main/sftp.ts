@@ -1,4 +1,4 @@
-import { Client, type FileEntryWithStats, type SFTPWrapper, type Stats } from 'ssh2'
+import type { Client, FileEntryWithStats, SFTPWrapper, Stats } from 'ssh2'
 import { shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { createReadStream, createWriteStream, type Stats as FsStats } from 'node:fs'
@@ -7,7 +7,8 @@ import { homedir } from 'node:os'
 import { basename, join, posix } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import type { DirListing, FileEntry, SessionStatus, SessionStatusEvent, Transfer } from '../shared/types'
-import { answerKeyboardInteractive, connectConfig, fingerprint, knownHostKey } from './connection'
+import { dial } from './connection'
+import type { Prompter } from './prompts'
 import type { Store } from './store'
 
 const PROGRESS_INTERVAL_MS = 150
@@ -35,7 +36,7 @@ class Session {
   client: Client | null = null
   sftp: SFTPWrapper | null = null
   status: SessionStatus = 'connecting'
-  pendingFingerprint: string | null = null
+  pendingHostKey: { knownKey: string; fingerprint: string } | null = null
   queue: Job[] = []
   running = false
 
@@ -79,6 +80,7 @@ export class SftpManager {
 
   constructor(
     private store: Store,
+    private prompter: Prompter,
     private events: SftpEvents
   ) {}
 
@@ -113,10 +115,9 @@ export class SftpManager {
 
   trustHostKey(tabId: string): void {
     const s = this.sessions.get(tabId)
-    const host = s && this.store.getHost(s.hostId)
-    if (!s || !host || !s.pendingFingerprint) return
-    this.store.setKnownHost(knownHostKey(host), s.pendingFingerprint)
-    s.pendingFingerprint = null
+    if (!s?.pendingHostKey) return
+    this.store.setKnownHost(s.pendingHostKey.knownKey, s.pendingHostKey.fingerprint)
+    s.pendingHostKey = null
     this.reconnect(tabId)
   }
 
@@ -126,34 +127,16 @@ export class SftpManager {
       this.setStatus(s, { status: 'error', message: 'This host has been deleted.' })
       return
     }
-    const secrets = this.store.getSecrets(host.id)
-    const knownKey = knownHostKey(host)
     this.setStatus(s, { status: 'connecting', message: `Connecting to ${host.username}@${host.hostname}…` })
 
-    const client = new Client()
+    const { client, failure } = dial({ store: this.store, prompter: this.prompter, tabId: s.tabId }, host)
     s.client = client
-    let lastError: string | null = null
-    let authFailed = false
-    let hostKeyMismatch = false
-
-    const config = connectConfig(host, secrets, this.store.getSettings(), (key) => {
-      const fp = fingerprint(key)
-      const known = this.store.getKnownHost(knownKey)
-      if (!known) {
-        this.store.setKnownHost(knownKey, fp)
-        return true
-      }
-      if (known === fp) return true
-      hostKeyMismatch = true
-      s.pendingFingerprint = fp
-      return false
-    })
-    answerKeyboardInteractive(client, secrets)
+    let sftpError: string | null = null
 
     client.on('ready', () => {
       client.sftp((err, sftp) => {
         if (err) {
-          lastError = `SFTP is not available on this server (${err.message}).`
+          sftpError = `SFTP is not available on this server (${err.message}).`
           client.end()
           return
         }
@@ -164,42 +147,25 @@ export class SftpManager {
       })
     })
 
-    client.on('error', (err: Error & { level?: string }) => {
-      if (err.level === 'client-authentication') authFailed = true
-      lastError = err.message
-    })
-
     client.on('close', () => {
       if (s.client !== client) return // stale connection after a manual reconnect
       s.client = null
       s.sftp = null
       this.failQueue(s, 'error', 'Connection closed')
       if (!this.sessions.has(s.tabId)) return
-      if (hostKeyMismatch) {
-        this.setStatus(s, {
-          status: 'error',
-          code: 'hostkey',
-          message: 'Host key changed. If you reinstalled the server, trust the new key.'
-        })
-      } else if (authFailed) {
-        this.setStatus(s, {
-          status: 'error',
-          code: 'auth',
-          message: 'Authentication failed. Check the username, password or key.'
-        })
+      const f = failure()
+      const message = sftpError ?? f?.message
+      if (f?.code === 'hostkey') {
+        s.pendingHostKey = { knownKey: f.knownKey, fingerprint: f.fingerprint }
+        this.setStatus(s, { status: 'error', code: 'hostkey', message: f.message })
+      } else if (f?.code === 'auth' && s.status !== 'connected') {
+        this.setStatus(s, { status: 'error', code: 'auth', message: f.message })
       } else if (s.status === 'connected') {
-        this.setStatus(s, { status: 'disconnected', message: lastError ?? 'Connection closed.' })
+        this.setStatus(s, { status: 'disconnected', message: message ?? 'Connection closed.' })
       } else {
-        this.setStatus(s, { status: 'error', message: lastError ?? 'Could not connect' })
+        this.setStatus(s, { status: 'error', message: message ?? 'Could not connect' })
       }
     })
-
-    try {
-      client.connect(config)
-    } catch (err) {
-      s.client = null
-      this.setStatus(s, { status: 'error', message: err instanceof Error ? err.message : String(err) })
-    }
   }
 
   private setStatus(s: Session, event: SessionStatusEvent): void {

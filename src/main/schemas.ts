@@ -21,6 +21,7 @@ export const hostInput: z.ZodType<HostInput> = z.strictObject({
   color: text(64),
   icon: text(200),
   autoReconnect: z.boolean(),
+  jumpHostId: z.string().max(128),
   password: secret(4096),
   privateKey: secret(64 * 1024),
   passphrase: secret(4096)
@@ -121,3 +122,4 @@ export const cssColor = text(64)
 export const fileSide = z.enum(['local', 'remote'])
 export const fsPath = z.string().min(1).max(4096)
 export const fsPaths = z.array(fsPath).min(1).max(10_000)
+export const promptAnswers = z.array(z.string().max(4096)).max(32).nullable()

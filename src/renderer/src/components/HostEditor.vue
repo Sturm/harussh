@@ -65,6 +65,13 @@ async function removeIcon(id: string): Promise<void> {
   if (form.icon === `custom:${id}`) form.icon = ''
 }
 
+// Any other saved host can be the jump host (loops are reported when connecting).
+const jumpHosts = computed(() =>
+  state.hosts
+    .filter((h) => h.id !== form.id)
+    .sort((a, b) => (a.label || a.hostname).localeCompare(b.label || b.hostname))
+)
+
 const authOptions: { value: AuthMethod; label: string }[] = [
   { value: 'password', label: 'Password' },
   { value: 'key', label: 'SSH key' },
@@ -111,6 +118,7 @@ async function submit(connect: boolean): Promise<void> {
     color: form.color,
     icon: form.icon,
     autoReconnect: form.autoReconnect,
+    jumpHostId: form.jumpHostId,
     password: secretValue('password'),
     privateKey: secretValue('privateKey'),
     passphrase: secretValue('passphrase')
@@ -386,6 +394,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
         <section class="form-section">
           <h3>Connection</h3>
+          <label class="field">
+            <span>Jump host</span>
+            <select v-model="form.jumpHostId">
+              <option value="">None, connect directly</option>
+              <option v-for="h in jumpHosts" :key="h.id" :value="h.id">
+                {{ h.label || h.hostname }} ({{ h.username }}@{{ h.hostname }}:{{ h.port }})
+              </option>
+            </select>
+          </label>
+          <p class="hint">
+            Like ProxyJump: connects to the jump host first and opens a tunnel from there. Use it for servers behind a
+            bastion.
+          </p>
           <label class="toggle">
             <input v-model="form.autoReconnect" type="checkbox" />
             <span class="toggle-ui" />

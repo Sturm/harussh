@@ -14,6 +14,7 @@ import TerminalTab from './components/TerminalTab.vue'
 import SftpTab from './components/SftpTab.vue'
 import HostEditor from './components/HostEditor.vue'
 import SnippetEditor from './components/SnippetEditor.vue'
+import PromptDialog from './components/PromptDialog.vue'
 
 watch(
   currentTheme,
@@ -92,5 +93,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey, true))
       <HostEditor v-if="state.editingHost" :key="state.editingHost.id ?? 'new'" :draft="state.editingHost" />
     </Transition>
     <SnippetEditor v-if="state.editingSnippet" :draft="state.editingSnippet" />
+    <PromptDialog v-if="state.prompts[0]" :key="state.prompts[0].id" :request="state.prompts[0]" />
   </div>
 </template>

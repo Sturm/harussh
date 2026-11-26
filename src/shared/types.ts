@@ -14,6 +14,8 @@ export interface Host {
   // '' = picked automatically from the username/name, a preset id, or "custom:<id>"
   icon: string
   autoReconnect: boolean
+  // Saved host to connect through (like ProxyJump); '' = direct
+  jumpHostId: string
   createdAt: number
   lastConnectedAt?: number | undefined
   // Secrets never reach the renderer, only whether they are stored.
@@ -34,6 +36,7 @@ export interface HostInput {
   color: string
   icon: string
   autoReconnect: boolean
+  jumpHostId: string
   password?: string | null | undefined
   privateKey?: string | null | undefined
   passphrase?: string | null | undefined
@@ -179,6 +182,27 @@ export interface SessionStatusEvent {
   code?: 'hostkey' | 'auth' | undefined
 }
 
+export type PromptQuestion =
+  | {
+      // First connection: the user checks the fingerprint before it is saved.
+      kind: 'hostkey'
+      target: string
+      keyType: string
+      fingerprint: string
+    }
+  | {
+      // keyboard-interactive: password, one-time code, 2FA push confirmation…
+      kind: 'auth'
+      title: string
+      instructions: string
+      prompts: { prompt: string; echo: boolean }[]
+    }
+
+// A question asked while connecting, about `host` (the target or a jump host).
+export type PromptBody = PromptQuestion & { tabId: string; host: string }
+
+export type PromptRequest = PromptBody & { id: string }
+
 export type FileSide = 'local' | 'remote'
 
 export interface FileEntry {
@@ -313,6 +337,11 @@ export interface HarusshApi {
   sftpDownload(tabId: string, remotePaths: string[], localDir: string): void
   sftpCancel(transferId: string): void
   pathForFile(file: File): string
+
+  onPrompt(cb: (request: PromptRequest) => void): () => void
+  onPromptHide(cb: (id: string) => void): () => void
+  // null = cancel; for a host key question any array means "trust".
+  answerPrompt(id: string, answers: string[] | null): void
 
   getUpdateStatus(): Promise<UpdateStatus>
   checkForUpdates(): Promise<UpdateStatus>

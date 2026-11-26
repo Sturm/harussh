@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import type { AppData } from '../shared/types'
 import * as schema from './schemas'
+import { Prompter } from './prompts'
 import { SftpManager } from './sftp'
 import { SshManager } from './ssh'
 import { Store } from './store'
@@ -33,6 +34,7 @@ let themes: ThemeStore
 let ssh: SshManager
 let sftp: SftpManager
 let updater: Updater
+let prompter: Prompter
 
 function send(channel: string, ...args: unknown[]): void {
   if (win && !win.isDestroyed()) win.webContents.send(channel, ...args)
@@ -249,6 +251,8 @@ function registerIpc(): void {
   )
   handle('fs:delete', z.tuple([fileSide, tabId, fsPaths]), (side, tab, paths) => sftp.delete(side, tab, paths))
 
+  on('prompt:answer', z.tuple([schema.id, schema.promptAnswers]), (id, answers) => prompter.answer(id, answers))
+
   handle('updates:get', noArgs, () => updater.get())
   handle('updates:check', noArgs, () => updater.check())
   on('updates:install', noArgs, () => updater.install())
@@ -278,11 +282,15 @@ if (!app.requestSingleInstanceLock()) {
     const userData = app.getPath('userData')
     store = new Store(userData)
     themes = new ThemeStore(userData)
-    ssh = new SshManager(store, {
+    prompter = new Prompter({
+      show: (request) => send('prompt:show', request),
+      hide: (id) => send('prompt:hide', id)
+    })
+    ssh = new SshManager(store, prompter, {
       data: (tabId, data) => send('ssh:data', tabId, data),
       status: (tabId, event) => send('ssh:status', tabId, event)
     })
-    sftp = new SftpManager(store, {
+    sftp = new SftpManager(store, prompter, {
       status: (tabId, event) => send('sftp:status', tabId, event),
       transfer: (transfer) => send('sftp:transfer', transfer)
     })
